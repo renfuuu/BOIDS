@@ -126,7 +126,7 @@ const char* mesh_vertex_shader =
 "void main()"
 "{   " 
 "    color = vec4(meshColor, 1.0);"
-"} "
+"} ";
 const char* mesh_frag_shader =
 "#version 330 core"
 "layout (location = 0) in vec4 vertex; // <vec2 position, vec2 texCoords>"
