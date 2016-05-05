@@ -39,6 +39,8 @@ int current_button = -1;
 int window_width = 800, window_height = 600;
 const std::string window_title = "OBJ Loader";
 
+
+
 // VBO and VAO descriptors.
 enum { 
 	kVertexBuffer, // Buffer of vertex positions
@@ -46,6 +48,18 @@ enum {
 	kNumVbos };
 
 GLuint vao = 0;                   // This will store the VAO descriptor.
+enum {
+  kBoid
+  kVelocity,
+  kAcceleration,
+  kAlign,
+  kSeparate,
+  kCohesion,
+  kNumVaos
+};
+
+
+
 GLuint buffer_objects[kNumVbos];  // These will store VBO descriptors.
 
 const char* vertex_shader =
