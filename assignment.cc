@@ -923,13 +923,13 @@ struct Boid
     mLocation += mVelocity;
     mAcceleration  = 0.0f*mAcceleration;
 
-    // //update normal 
-    // glm::vec3 nNewV = glm::normalize(mVelocity);
-    // glm::vec3 rotN = glm::cross(oldV, nNewV);
-    // float theta = glm::acos(glm::dot(oldV, nNewV)/(glm::length(oldV)*glm::length(nNewV)));
-
-    // mTangent = glm::rotate(oldV, theta, rotN);
-    // mNormal = glm::rotate(mNormal, theta, rotN);
+    //Borders
+    // if (mLocation.x < -20.0f) mLocation.x = 20.0f;
+    // if (mLocation.y < -20.0f) mLocation.y = 20.0f;
+    // if (mLocation.z < -20.0f) mLocation.z = 20.0f;
+    // if (mLocation.x > 20.0f) mLocation.x = -20.0f;
+    // if (mLocation.y > 20.0f) mLocation.y = -20.0f;
+    // if (mLocation.z > 20.0f) mLocation.z = -20.0f;
   }
 
   void applyForce(glm::vec3 force)
@@ -1010,12 +1010,12 @@ struct Boid
       // sum.setMag(maxspeed);
 
       // Implement Reynolds: Steering = Desired - Velocity
-      // sum = glm::normalize(sum);
+      glm::normalize(sum);
       sum = sum*maxspeed;
       glm::vec3 steer = sum - mVelocity;
       if(glm::length(steer) > maxforce)
       {
-        steer = glm::normalize(steer);
+        glm::normalize(steer);
         steer = steer*maxforce;
       }
       return steer;
@@ -1181,13 +1181,11 @@ struct Boid
   glm::mat4 model()
   {
     // glm::mat4 model(1.0);
-    // glm::vec3 t = glm::normalize(mVelocity);
-    // glm::vec3 n = glm::normalize(mNormal);
-    glm::vec3 t = mTangent;
-    glm::vec3 n = mNormal;
-    glm::vec3 cross = glm::cross(t, n);
+    glm::vec3 v = glm::normalize(mVelocity);
+    glm::vec3 a = glm::normalize(mAcceleration);
+    glm::vec3 cross = glm::cross(v, a);
     glm::mat4 model;
-    // model = glm::mat4(glm::vec4(t.x, t.y, t.z, 0.0f), glm::vec4(n.x,n.y,n.z, 0.0f), glm::vec4(cross.x, cross.y, cross.z, 0.0f), glm::vec4(0.0f,0.0f,0.0f,1.0f));
+    // model = glm::mat4(glm::vec4(v.x, v.y, v.z, 0.0f), glm::vec4(a.x,a.y,a.z, 0.0f), glm::vec4(cross.x, cross.y, cross.z, 0.0f), glm::vec4(0.0f,0.0f,0.0f,1.0f));
     model = glm::translate(model, mLocation);
     return model;
   }
@@ -1237,6 +1235,8 @@ void Do_Movement();
 
 
 
+Flock* flock = new Flock;
+glm::mat4 projection; 
 
 int main()
 {
@@ -1466,6 +1466,55 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
       steer_state =  SteerState::CHAOS;
       PRINT("CHAOS");
     }
+    else if(key == GLFW_KEY_UP && action == GLFW_PRESS)
+    {
+      for (std::vector<Boid*>::iterator i = flock->boids.begin(); i != flock->boids.end(); ++i)
+      {
+        (*i)->mWeights[0] = (*i)->mWeights[0] + 0.5f;
+      }
+    }
+    else if(key == GLFW_KEY_DOWN && action == GLFW_PRESS)
+    {
+      for (std::vector<Boid*>::iterator i = flock->boids.begin(); i != flock->boids.end(); ++i)
+      {
+        (*i)->mWeights[0] = (*i)->mWeights[0] - 0.5f;
+      }
+    }
+    else if(key == GLFW_KEY_LEFT && action == GLFW_PRESS)
+    {
+      for (std::vector<Boid*>::iterator i = flock->boids.begin(); i != flock->boids.end(); ++i)
+      {
+        (*i)->mWeights[1] = (*i)->mWeights[1] + 0.5f;
+      }
+    }
+    else if(key == GLFW_KEY_RIGHT && action == GLFW_PRESS)
+    {
+      for (std::vector<Boid*>::iterator i = flock->boids.begin(); i != flock->boids.end(); ++i)
+      {
+        (*i)->mWeights[1] = (*i)->mWeights[1] - 0.5f;
+      }
+    }
+    else if(key == GLFW_KEY_PERIOD && action == GLFW_PRESS)
+    {
+      for (std::vector<Boid*>::iterator i = flock->boids.begin(); i != flock->boids.end(); ++i)
+      {
+        (*i)->mWeights[2] = (*i)->mWeights[2] + 0.5f;
+      }
+    }
+    else if(key == GLFW_KEY_COMMA && action == GLFW_PRESS)
+    {
+      for (std::vector<Boid*>::iterator i = flock->boids.begin(); i != flock->boids.end(); ++i)
+      {
+        (*i)->mWeights[2] = (*i)->mWeights[2] - 0.5f;
+      }
+    }
+    else if(key == GLFW_KEY_SPACE && action == GLFW_PRESS)
+    {
+      for (std::vector<Boid*>::iterator i = flock->boids.begin(); i != flock->boids.end(); ++i)
+      {
+        (*i)->setWeights(glm::vec3(1.0f));
+      }
+    }
 
 
     if (key >= 0 && key < 1024)
@@ -1507,6 +1556,25 @@ void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
 {
   drag_state = (action == GLFW_PRESS);
   current_button = button;
+
+  if(button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS)
+  {
+
+      float x,y,z;
+      x = (2.0f*lastX)/screenWidth-1.0f;
+      y = 1.0f - (2.0f*lastY)/screenHeight;
+      glm::vec3 ray_nds = glm::vec3(x,y,1.0f);
+      glm::vec4 ray_clip = glm::vec4 (ray_nds.x,ray_nds.y, -1.0, 1.0);
+      glm::vec4 ray_eye = glm::inverse (projection) * ray_clip;
+      ray_eye = glm::vec4 (ray_eye.x, ray_eye.y, -1.0, 0.0);
+      glm::vec4 ray_wor4 = glm::inverse(camera->GetViewMatrix()) * ray_eye;
+      glm::vec3 ray_wor = glm::vec3(ray_wor4.x, ray_wor4.y, ray_wor4.z);
+      // don't forget to normalise the vector at some point
+      ray_wor = glm::normalize (ray_wor);
+
+
+      flock->addBoid(new Boid((camera->Position + ray_wor) + camera->Front*10.0f));
+  }
 }
 
 void error_callback(int error, const char* description) {

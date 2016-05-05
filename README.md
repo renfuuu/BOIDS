@@ -1,9 +1,30 @@
-Welcome to Computer Graphics 
+CS354 - BOIDS
 -----------------------------
 Team Member 1: Kaleb Alanis 
 
 Team Member 2: Itoro Esiere
 
-Description: Introduction of the graphics pipeline by implementing a simple ”hello
-world” program that shows a spinning Stanford Bunny, sphere, and dragon
-# europa
+Description: Implementation of BOIDS/Flocking in 3 space.
+
+How to build:
+buildit.sh
+
+How to Run:
+runit.sh assignment
+
+Instructions:
+Press P - to Pause
+Press C - for Chaos State
+Press R - to make the boids return toward camera
+Press N - for Natural State
+Press Left Mouse button - to generate one new boid
+Press Up Arrow - to increment cohesion
+Press Down Arrow - to decrement cohesion
+Press Right Arrow - to increment seperation
+Press Left Arrow - to decrement seperation
+Press > or . - to increment alignment
+Press < or , - to decrement alignment
+Press Spacebar - to reset Cohesion, Alignment, Seperation weights
+
+
+Disclaimer: We both did the course instructor survey.
