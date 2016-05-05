@@ -17,6 +17,9 @@ Press P - to Pause
 Press C - for Chaos State
 Press R - to make the boids return toward camera
 Press N - for Natural State
+<!-- Press L - change look at of camera to center mass of flock
+Press F - to main camera
+Press 1-10 - to look at the first ten boids -->
 Press Left Mouse button - to generate one new boid
 Press Up Arrow - to increment cohesion
 Press Down Arrow - to decrement cohesion
