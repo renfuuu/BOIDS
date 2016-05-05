@@ -966,7 +966,7 @@ struct Boid
 
   glm::vec3 separate(std::vector<Boid*> boids)
   {
-    float desiredSeparation = 25.0f;
+    float desiredSeparation = 50.0f;
     glm::vec3 steer(0.0f);
     int count = 0;
 
@@ -1158,7 +1158,7 @@ int main()
 {
     // Init GLFW
  
-  int sim_s
+  // int sim_s
 
   if (!glfwInit()) exit(EXIT_FAILURE);
   glfwSetErrorCallback(error_callback);
@@ -1192,48 +1192,32 @@ int main()
     ResourceManager::GetShader("mesh2d").SetVector3f("meshColor", glm::vec3(1.0f,1.0f,0.0f));
     // Set up our vertex data (and buffer(s)) and attribute pointers
     GLfloat vertices[] = {
-        -0.5f, -0.5f, -0.5f,  0.0f, 0.0f,
-         0.5f, -0.5f, -0.5f,  1.0f, 0.0f,
-         0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-         0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-        -0.5f,  0.5f, -0.5f,  0.0f, 1.0f,
-        -0.5f, -0.5f, -0.5f,  0.0f, 0.0f,
+         0.0f,  6.0f,  0.0f,
+        -1.0f, -1.0f,  1.0f,
+         1.0f, -1.0f,  1.0f,
 
-        -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
-         0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
-         0.5f,  0.5f,  0.5f,  1.0f, 1.0f,
-         0.5f,  0.5f,  0.5f,  1.0f, 1.0f,
-        -0.5f,  0.5f,  0.5f,  0.0f, 1.0f,
-        -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
+         0.0f,  6.0f,  0.0f,
+         1.0f, -1.0f,  1.0f,
+         1.0f, -1.0f, -1.0f,
 
-        -0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-        -0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-        -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-        -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-        -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
-        -0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+         0.0f,  6.0f,  0.0f,
+        -1.0f, -1.0f, -1.0f,
+        -1.0f, -1.0f,  1.0f,
 
-         0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-         0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-         0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-         0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-         0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
-         0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+         0.0f,  6.0f,  0.0f,
+         1.0f, -1.0f, -1.0f,
+        -1.0f, -1.0f, -1.0f,
 
-        -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-         0.5f, -0.5f, -0.5f,  1.0f, 1.0f,
-         0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
-         0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
-        -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
-        -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+         1.0f, -1.0f, -1.0f,
+        -1.0f, -1.0f,  1.0f,
+         1.0f, -1.0f,  1.0f, 
 
-        -0.5f,  0.5f, -0.5f,  0.0f, 1.0f,
-         0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-         0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-         0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-        -0.5f,  0.5f,  0.5f,  0.0f, 0.0f,
-        -0.5f,  0.5f, -0.5f,  0.0f, 1.0f
+         1.0f, -1.0f, -1.0f,
+        -1.0f, -1.0f, -1.0f,
+        -1.0f, -1.0f,  1.0f
     };
+
+
     glm::vec3 cubePositions[] = {
         glm::vec3(0.0f, 0.0f, 0.0f), 
         glm::vec3(2.0f, 5.0f, -15.0f), 
@@ -1257,7 +1241,7 @@ int main()
     glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
 
     // Position attribute
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(GLfloat), (GLvoid*)0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), (GLvoid*)0);
     glEnableVertexAttribArray(0);
 
     glBindVertexArray(0); // Unbind VAO
