@@ -36,7 +36,7 @@ int current_button = -1;
 
 
 
-int window_width = 800, window_height = 600;
+int screenWidth = 800, screenHeight = 600;
 const std::string window_title = "OBJ Loader";
 
 
@@ -60,8 +60,9 @@ enum {
 
 
 
-GLuint buffer_objects[kNumVbos];  // These will store VBO descriptors.
 
+GLuint array_objects[kNumVaos];
+GLuint buffer_objects[kNumVbos];  // These will store VBO descriptors.
 const char* vertex_shader =
     "#version 330 core\n"
     "in vec3 vertex_position;" // A vector (x,y,z) representing the vertex's position
@@ -258,33 +259,6 @@ void LoadObj(const std::string& file, std::vector<glm::vec3>& vertices,
           is >> v2;
           is >> v3;
 
-          if(minC[0] > v1)
-          {
-            minC[0] = v1;
-          } 
-          else if(maxC[0] < v1)
-          {
-            maxC[0] = v1;
-          }
-
-          if(minC[1] > v2)
-          {
-            minC[1] = v2;
-          } 
-          else if(maxC[1] < v2)
-          {
-            maxC[1] = v2;
-          }
-
-          if(minC[2] > v3)
-          {
-            minC[2] = v3;
-          } 
-          else if(maxC[2] < v3)
-          {
-            maxC[2] = v3;
-          }
-
           vertices.push_back(glm::vec3(v1,v2,v3));
         }break;
         case 'f':
@@ -304,39 +278,6 @@ void LoadObj(const std::string& file, std::vector<glm::vec3>& vertices,
       }
     }
 
-
-    auto normalizer = [](glm::vec3 p, glm::vec3 min, glm::vec3 max)
-    {
-      glm::vec3 q;
-      float x,y,z;
-      if(min[0] != max[0])
-        x = 2.0f*(p[0]-min[0])/(max[0]-min[0])-1.0f;
-      else
-        x = min[0];
-
-      if(min[1] != max[1])
-        y = 2.0f*(p[1]-min[1])/(max[1]-min[1])-1.0f;
-      else
-        y = min[1];
-
-      if(min[2] != max[2])
-        z = 2.0f*(p[2]-min[2])/(max[2]-min[2])-1.0f;
-      else
-        z = min[2];
-
-      return glm::vec3(x,y,z);
-    };
-
-    bool a = (minC[0] >=-1.0f && minC[1] >=-1.0f && minC[2] >=-1.0f);
-    bool b = (maxC[0] <=1.0f && maxC[1] <=1.0f && maxC[2] <=1.0f);
-
-    if(!(a&&b))
-    {
-      for (std::vector<glm::vec3>::iterator i = vertices.begin(); i != vertices.end(); ++i)
-      {
-        (*i) = normalizer((*i),minC,maxC);
-      }
-    }
 
     myfile.close();
   }
@@ -374,33 +315,6 @@ void LoadObj(const std::string& file, std::vector<glm::vec4>& vertices,
           is >> v1;
           is >> v2;
           is >> v3;
-
-          // if(minC[0] > v1)
-          // {
-          //   minC[0] = v1;
-          // } 
-          // else if(maxC[0] < v1)
-          // {
-          //   maxC[0] = v1;
-          // }
-
-          // if(minC[1] > v2)
-          // {
-          //   minC[1] = v2;
-          // } 
-          // else if(maxC[1] < v2)
-          // {
-          //   maxC[1] = v2;
-          // }
-
-          // if(minC[2] > v3)
-          // {
-          //   minC[2] = v3;
-          // } 
-          // else if(maxC[2] < v3)
-          // {
-          //   maxC[2] = v3;
-          // }
 
           vertices.push_back(glm::vec4(v1,v2,v3, 1.0f));
         }break;
@@ -915,8 +829,26 @@ Texture2D ResourceManager::loadTextureFromFile(const GLchar *file, GLboolean alp
     return texture;
 }
 
+Camera* camera;
+bool keys[1024];
+GLfloat lastX = 400, lastY = 300;
+bool firstMouse = true;
 
-enum SimulationState { RUN, PAUSE };
+GLfloat deltaTime = 0.0f;
+GLfloat lastFrame = 0.0f;
+
+// The MAIN function, from here we start our application and run our Game loop
+
+
+
+//-------------------------------------------------------------------------------------
+//BOIDS
+
+enum SimulationState { RUN, PAUSE, kSimStates};
+enum SteerState {NATURAL, RETURN, CHAOS, kSteerStates};
+
+int sim_state = SimulationState::RUN;
+int steer_state = SteerState::NATURAL;
 
 
 struct Boid
@@ -930,7 +862,11 @@ struct Boid
 
   glm::vec3 mColor;
 
+  glm::vec3 mWeights;
 
+  glm::vec3 cohIncentive;
+  glm::vec3 aliIncentive;
+  glm::vec3 sepIncentive;
 
   Boid(glm::vec3 pos)
   {
@@ -944,6 +880,7 @@ struct Boid
     float b = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
     float c = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
     mColor = glm::vec3(a,b,c);
+    mWeights = glm::vec3(1.0f);
   }
 
   void update()
@@ -961,6 +898,11 @@ struct Boid
   void applyForce(glm::vec3 force)
   {
     mAcceleration += force;
+    if(glm::length(mAcceleration) > maxforce)
+      {
+        glm::normalize(mAcceleration);
+        mAcceleration = mAcceleration*maxforce;
+      }
   }
 
   glm::vec3 seek(glm::vec3 target)
@@ -980,7 +922,7 @@ struct Boid
 
   glm::vec3 separate(std::vector<Boid*> boids)
   {
-    float desiredSeparation = 50.0f;
+    float desiredSeparation = 25.0f;
     glm::vec3 steer(0.0f);
     int count = 0;
 
@@ -1079,25 +1021,89 @@ struct Boid
 
   void run(std::vector<Boid*> boids)
   {
-    flock(boids);
+    flock(boids, SteerState::NATURAL);
     update();
   }
 
-  void flock(std::vector<Boid*> boids)
+  void setWeights(glm::vec3 biases)
+  {
+    mWeights = biases;
+  }
+
+  void setCohesionBias(float c)
+  {
+    mWeights[0] = c;
+  }
+
+  void setAlignmentBias(float a)
+  {
+    mWeights[1] = a;
+  }
+
+  void setSeparationBias(float s)
+  {
+    mWeights[2] = s;
+  }
+
+  void updateIncentiveState(glm::vec3 c, glm::vec3 a, glm::vec3 s)
+  {
+    cohIncentive = c;
+    aliIncentive = a;
+    sepIncentive = s;
+  }
+
+  void flock(std::vector<Boid*> boids, int steertype)
   {
     glm::vec3 sep = separate(boids);
     glm::vec3 ali = align(boids);
     glm::vec3 coh = cohesion(boids);
 
-    //weights here are artibrary, maybe add evolutionary algorithm for points
+    if(steertype == SteerState::NATURAL)
+    {
 
-    sep = 1.0f*sep;
-    ali = 1.0f*ali;
-    coh = 1.0f*coh;
+      sepIncentive = mWeights[0]*sep;
+      aliIncentive = mWeights[1]*ali;
+      cohIncentive = mWeights[2]*coh;
 
-    applyForce(sep);
-    applyForce(ali);
-    applyForce(coh);
+
+      applyForce(cohIncentive);
+      applyForce(aliIncentive);
+      applyForce(sepIncentive);
+    }
+    else if(steertype == SteerState::RETURN)
+    {
+      sepIncentive = (0.05f*sep);
+      aliIncentive = (0.05f*ali);
+      cohIncentive = (0.05f*coh);
+      applyForce(1.0f*seek(camera->Position));
+      applyForce(cohIncentive);
+      applyForce(aliIncentive);
+      applyForce(sepIncentive);
+    }
+    else if (steertype == SteerState::CHAOS)
+    {
+      float r = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
+      sepIncentive = r*sep;
+      r = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
+      aliIncentive = r*ali;
+      r = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
+      cohIncentive = r*coh;
+      r = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
+      float r1 = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
+      float r2 = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
+
+
+      applyForce(cohIncentive);
+      applyForce(aliIncentive);
+      applyForce(sepIncentive);
+      applyForce(glm::vec3(r,r1,r2));
+    }
+    else
+    {
+      applyForce(sep);
+      applyForce(ali);
+      applyForce(coh);
+    }
   }
 
   glm::mat4 model()
@@ -1142,28 +1148,18 @@ struct Flock
 };
 
 
-
-// Properties
-GLuint screenWidth = 800, screenHeight = 600;
-
-// Function prototypes
-void error_callback(int error, const char* description);
-void key_callback(GLFWwindow* window, int key, int scancode, int action, int mode);
-void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
-void mouse_callback(GLFWwindow* window, double xpos, double ypos);
-void mouse_button_callback(GLFWwindow* window, int button, int action, int mods);
 void Do_Movement();
+// Is called whenever a key is pressed/released via GLFW
+void key_callback(GLFWwindow* window, int key, int scancode, int action, int mode);
 
-// Camera
-Camera* camera;
-bool keys[1024];
-GLfloat lastX = 400, lastY = 300;
-bool firstMouse = true;
+void mouse_callback(GLFWwindow* window, double xpos, double ypos);
 
-GLfloat deltaTime = 0.0f;
-GLfloat lastFrame = 0.0f;
+void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
 
-// The MAIN function, from here we start our application and run our Game loop
+void mouse_button_callback(GLFWwindow* window, int button, int action, int mods) ;
+
+void error_callback(int error, const char* description);
+
 
 
 
@@ -1172,7 +1168,7 @@ int main()
 {
     // Init GLFW
  
-  // int sim_s
+
 
   if (!glfwInit()) exit(EXIT_FAILURE);
   glfwSetErrorCallback(error_callback);
@@ -1181,7 +1177,7 @@ int main()
   glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
   glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
   glfwWindowHint(GLFW_SAMPLES, 4);
-  GLFWwindow* window = glfwCreateWindow(window_width, window_height,
+  GLFWwindow* window = glfwCreateWindow(screenWidth, screenHeight,
                                         "Boids", nullptr, nullptr);
   CHECK_SUCCESS(window != nullptr);
 
@@ -1206,32 +1202,48 @@ int main()
     ResourceManager::GetShader("mesh2d").SetVector3f("meshColor", glm::vec3(1.0f,1.0f,0.0f));
     // Set up our vertex data (and buffer(s)) and attribute pointers
     GLfloat vertices[] = {
-         0.0f,  6.0f,  0.0f,
-        -1.0f, -1.0f,  1.0f,
-         1.0f, -1.0f,  1.0f,
+        -0.5f, -0.5f, -0.5f,  0.0f, 0.0f,
+         0.5f, -0.5f, -0.5f,  1.0f, 0.0f,
+         0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
+         0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
+        -0.5f,  0.5f, -0.5f,  0.0f, 1.0f,
+        -0.5f, -0.5f, -0.5f,  0.0f, 0.0f,
 
-         0.0f,  6.0f,  0.0f,
-         1.0f, -1.0f,  1.0f,
-         1.0f, -1.0f, -1.0f,
+        -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
+         0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
+         0.5f,  0.5f,  0.5f,  1.0f, 1.0f,
+         0.5f,  0.5f,  0.5f,  1.0f, 1.0f,
+        -0.5f,  0.5f,  0.5f,  0.0f, 1.0f,
+        -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
 
-         0.0f,  6.0f,  0.0f,
-        -1.0f, -1.0f, -1.0f,
-        -1.0f, -1.0f,  1.0f,
+        -0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+        -0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
+        -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+        -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+        -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
+        -0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
 
-         0.0f,  6.0f,  0.0f,
-         1.0f, -1.0f, -1.0f,
-        -1.0f, -1.0f, -1.0f,
+         0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+         0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
+         0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+         0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+         0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
+         0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
 
-         1.0f, -1.0f, -1.0f,
-        -1.0f, -1.0f,  1.0f,
-         1.0f, -1.0f,  1.0f, 
+        -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+         0.5f, -0.5f, -0.5f,  1.0f, 1.0f,
+         0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
+         0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
+        -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
+        -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
 
-         1.0f, -1.0f, -1.0f,
-        -1.0f, -1.0f, -1.0f,
-        -1.0f, -1.0f,  1.0f
+        -0.5f,  0.5f, -0.5f,  0.0f, 1.0f,
+         0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
+         0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+         0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+        -0.5f,  0.5f,  0.5f,  0.0f, 0.0f,
+        -0.5f,  0.5f, -0.5f,  0.0f, 1.0f
     };
-
-
     glm::vec3 cubePositions[] = {
         glm::vec3(0.0f, 0.0f, 0.0f), 
         glm::vec3(2.0f, 5.0f, -15.0f), 
@@ -1255,7 +1267,7 @@ int main()
     glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
 
     // Position attribute
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), (GLvoid*)0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(GLfloat), (GLvoid*)0);
     glEnableVertexAttribArray(0);
 
     glBindVertexArray(0); // Unbind VAO
@@ -1335,8 +1347,11 @@ int main()
 
         for (std::vector<Boid*>::iterator i = flock->boids.begin(); i != flock->boids.end(); ++i)
         {
-          (*i)->flock(flock->boids);
-          (*i)->update();
+          if(sim_state != SimulationState::PAUSE)
+          {
+            (*i)->flock(flock->boids, steer_state);
+            (*i)->update(); 
+          }
         }
 
         glBindVertexArray(0);
@@ -1377,7 +1392,28 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 {
     //cout << key << endl;
     if(key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
-        glfwSetWindowShouldClose(window, GL_TRUE);
+      glfwSetWindowShouldClose(window, GL_TRUE);
+    else if(key == GLFW_KEY_P && action == GLFW_PRESS)
+    {
+      sim_state++;
+      sim_state = sim_state%2;
+    }
+    else if(key == GLFW_KEY_N && action == GLFW_PRESS)
+    {
+      steer_state = SteerState::NATURAL;
+    }
+    else if(key == GLFW_KEY_R && action == GLFW_PRESS)
+    {
+      steer_state++;
+      steer_state =  SteerState::RETURN;
+    }
+    else if(key == GLFW_KEY_C && action == GLFW_PRESS)
+    {
+      steer_state++;
+      steer_state =  SteerState::CHAOS;
+    }
+
+
     if (key >= 0 && key < 1024)
     {
         if(action == GLFW_PRESS)
