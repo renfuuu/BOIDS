@@ -1372,7 +1372,9 @@ int main()
 
     glBindVertexArray(0); // Unbind VAO
 
-    camera = new Camera(glm::vec3(0.0f, 0.0f, 50.0f));
+    camera = new Camera(glm::vec3(0.0f, 50.0f, 50.0f));
+    camera->Front = -1.0f*camera->Position;
+
     srand (static_cast <unsigned> (time(0)));
 
     for (int i = 0; i < 10; ++i)
