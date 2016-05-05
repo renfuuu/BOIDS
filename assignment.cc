@@ -529,6 +529,12 @@ enum Camera_Movement {
     RIGHT
 };
 
+enum CameraMode {
+  CENTER,
+  FREE,
+  BOID
+};
+
 // Default camera values
 const GLfloat YAW        = -90.0f;
 const GLfloat PITCH      =  0.0f;
@@ -604,8 +610,8 @@ class Camera
           this->Position += this->Right * velocity;
         }
 
-        std::cout << "pos:: ";
-        std::cout << "x: " << this->Position[0] << "y: " << this->Position[1] << "z: " << this->Position[2] <<std::endl;
+        // std::cout << "pos:: ";
+        // std::cout << "x: " << this->Position[0] << "y: " << this->Position[1] << "z: " << this->Position[2] <<std::endl;
     }
 
     // Processes input received from a mouse input system. Expects the offset value in both the x and y direction.
@@ -879,8 +885,10 @@ struct Boid
   {
     mAcceleration = glm::vec3(0.0f);
     mLocation = pos;
+    mLocation[0] = 1.0f;
+
     r = 2.0;
-    maxspeed = 2.0f;
+    maxspeed = 1.0f;
     maxforce = 0.03;
 
     float a = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
@@ -888,18 +896,21 @@ struct Boid
     float c = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
     mColor = glm::vec3(a,b,c);
     mWeights = glm::vec3(1.0f);
-    // mTangent = glm::vec3(0.0f);
-    // mNormal = glm::vec3(0.0f);
+
+    mVelocity = glm::vec3(1.0,b,c);
+
+    mTangent = glm::normalize(mVelocity);
+    mNormal = generateNormal();
   }
 
   Boid(glm::vec3 pos, glm::vec3 direction)
   {
     mVelocity = glm::normalize(direction);
-    mTangent = mVelocity;
+    // mTangent = mVelocity;
     mAcceleration = glm::vec3(0.0f);
     mLocation = pos;
     r = 2.0;
-    maxspeed = 2.0f;
+    maxspeed = 1.0f;
     maxforce = 0.03;
 
     float a = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
@@ -908,6 +919,9 @@ struct Boid
     mColor = glm::vec3(a,b,c);
     mWeights = glm::vec3(1.0f);
     
+    mTangent = glm::normalize(mVelocity);
+    mNormal = generateNormal();
+
   }
 
   void update()
@@ -924,12 +938,21 @@ struct Boid
     mAcceleration  = 0.0f*mAcceleration;
 
     //Borders
-    // if (mLocation.x < -20.0f) mLocation.x = 20.0f;
-    // if (mLocation.y < -20.0f) mLocation.y = 20.0f;
-    // if (mLocation.z < -20.0f) mLocation.z = 20.0f;
-    // if (mLocation.x > 20.0f) mLocation.x = -20.0f;
-    // if (mLocation.y > 20.0f) mLocation.y = -20.0f;
-    // if (mLocation.z > 20.0f) mLocation.z = -20.0f;
+    if (mLocation.x < -50.0f) mLocation.x = 50.0f;
+    if (mLocation.y < -50.0f) mLocation.y = 50.0f;
+    if (mLocation.z < -50.0f) mLocation.z = 50.0f;
+    if (mLocation.x > 50.0f) mLocation.x = -50.0f;
+    if (mLocation.y > 50.0f) mLocation.y = -50.0f;
+    if (mLocation.z > 50.0f) mLocation.z = -50.0f;
+
+
+    glm::vec3 nNewV = glm::normalize(mVelocity);
+    glm::vec3 rotN = glm::normalize(glm::cross(oldV, nNewV));
+
+    float theta = glm::acos(glm::dot(oldV, nNewV)/(glm::length(oldV)*glm::length(nNewV)));
+    mTangent = glm::rotate(mTangent, theta, rotN);
+    mNormal = glm::rotate(mNormal, theta, rotN);
+
   }
 
   void applyForce(glm::vec3 force)
@@ -1005,17 +1028,18 @@ struct Boid
     }
     if (count > 0) {
       sum *= (1.0f/(float)count);
+      // PRINT("sum " << sum.x << " " << sum.y << " " << sum.z);
       // First two lines of code below could be condensed with new PVector setMag() method
       // Not using this method until Processing.js catches up
       // sum.setMag(maxspeed);
 
       // Implement Reynolds: Steering = Desired - Velocity
-      glm::normalize(sum);
+      sum = glm::normalize(sum);
       sum = sum*maxspeed;
       glm::vec3 steer = sum - mVelocity;
       if(glm::length(steer) > maxforce)
       {
-        glm::normalize(steer);
+        steer = glm::normalize(steer);
         steer = steer*maxforce;
       }
       return steer;
@@ -1119,10 +1143,6 @@ struct Boid
     glm::vec3 ali = align(boids);
     glm::vec3 coh = cohesion(boids);
     
-    if(glm::length(mLocation) > boundaryRadius)
-    {
-      applyForce(5.0f*seek(camera->Position));
-    }
 
     if(steertype == SteerState::NATURAL)
     {
@@ -1138,10 +1158,10 @@ struct Boid
     }
     else if(steertype == SteerState::RETURN)
     {
-      sepIncentive = (0.05f*sep);
-      aliIncentive = (0.05f*ali);
-      cohIncentive = (0.05f*coh);
-      applyForce(1.0f*seek(camera->Position));
+      sepIncentive = mWeights[0]*sep;
+      aliIncentive = mWeights[1]*ali;
+      cohIncentive = mWeights[2]*coh;
+      applyForce(1.0f*seek(camera->Position+20.0f*camera->Front));
       applyForce(cohIncentive);
       applyForce(aliIncentive);
       applyForce(sepIncentive);
@@ -1181,12 +1201,13 @@ struct Boid
   glm::mat4 model()
   {
     // glm::mat4 model(1.0);
-    glm::vec3 v = glm::normalize(mVelocity);
-    glm::vec3 a = glm::normalize(mAcceleration);
+    glm::vec3 v = glm::normalize(mTangent);
+    glm::vec3 a = glm::normalize(mNormal);
     glm::vec3 cross = glm::cross(v, a);
     glm::mat4 model;
-    // model = glm::mat4(glm::vec4(v.x, v.y, v.z, 0.0f), glm::vec4(a.x,a.y,a.z, 0.0f), glm::vec4(cross.x, cross.y, cross.z, 0.0f), glm::vec4(0.0f,0.0f,0.0f,1.0f));
+    model = glm::mat4(glm::vec4(cross.x, cross.y, cross.z, 0.0f), glm::vec4(v.x,v.y,v.z, 0.0f), glm::vec4(a.x, a.y, a.z, 0.0f), glm::vec4(0.0f,0.0f,0.0f,1.0f));
     model = glm::translate(model, mLocation);
+    // model = glm::scale(model, glm::vec3(.75f,.75f,.75f));
     return model;
   }
 };
@@ -1222,6 +1243,23 @@ struct Flock
     boids.push_back(new Boid(glm::vec3(r1,r2,-12.0)));
   }
 
+  glm::vec3 getFlockCenterOfMass()
+  {
+    glm::vec3 sum(0.0f);   // Start with empty vector to accumulate all locations
+    int count = 0;
+    for (Boid* other : boids) {
+        sum += other->mLocation; // mSize*mLocation Add location
+        count++;
+    }
+    if (count > 0) {
+      sum *= (1.0f/(float)count);
+      return sum;  // Steer towards the location
+    } 
+    else {
+      return glm::vec3(0.0f);
+    }
+  }
+
 };
 
 // Function prototypes
@@ -1235,14 +1273,18 @@ void Do_Movement();
 
 
 
-Flock* flock = new Flock;
+Flock* flock;
 glm::mat4 projection; 
+
+int camera_mode;
+int boid_select;
 
 int main()
 {
     // Init GLFW
- 
-
+  
+  flock = new Flock;
+  camera_mode = CameraMode::FREE;
 
   if (!glfwInit()) exit(EXIT_FAILURE);
   glfwSetErrorCallback(error_callback);
@@ -1330,10 +1372,8 @@ int main()
 
     glBindVertexArray(0); // Unbind VAO
 
-    camera = new Camera(glm::vec3(0.0f, 0.0f, 3.0f));
+    camera = new Camera(glm::vec3(0.0f, 0.0f, 50.0f));
     srand (static_cast <unsigned> (time(0)));
-    
-    Flock* flock = new Flock;
 
     for (int i = 0; i < 10; ++i)
     {
@@ -1341,8 +1381,34 @@ int main()
     }
 
 
+
+
     while(!glfwWindowShouldClose(window))
     {
+
+      if(camera_mode != FREE)
+      {
+        if(camera_mode == CENTER)
+        {
+          // glm::vec3 f = glm::normalize(flock->getFlockCenterOfMass() - camera->Position);
+          // camera->Front = f;
+        }
+        else if(camera_mode == BOID)
+        {
+          if(boid_select < flock->boids.size())
+          {
+            // glm::vec3 f = glm::normalize(flock->boids[boid_select]->mVelocity);
+            // camera->Front = f;
+            // camera->Position = flock->boids[boid_select]->mLocation + camera->Front*(1.0f);
+          }
+        }
+      }
+      else
+      {
+        // camera->Position = flock->getFlockCenterOfMass();
+      }
+
+
         // Set frame time
         GLfloat currentFrame = glfwGetTime();
         deltaTime = currentFrame - lastFrame;
@@ -1398,13 +1464,18 @@ int main()
             glDrawArrays(GL_TRIANGLES, 0, 36);      
         }
 
+        int cc = 0;
         for (std::vector<Boid*>::iterator i = flock->boids.begin(); i != flock->boids.end(); ++i)
-        {
+        { 
+
+          PRINT("Boid " << cc << " pos: " <<(*i)->mLocation.x << " " << (*i)->mLocation.y << " " << (*i)->mLocation.z);
+      
           if(sim_state != SimulationState::PAUSE)
           {
             (*i)->flock(flock->boids, steer_state);
             (*i)->update(); 
           }
+          cc++;
         }
 
         glBindVertexArray(0);
@@ -1515,7 +1586,64 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
         (*i)->setWeights(glm::vec3(1.0f));
       }
     }
-
+    else if(key == GLFW_KEY_L && action == GLFW_PRESS)
+    {
+      camera_mode = CameraMode::CENTER;
+    }
+    else if(key == GLFW_KEY_F && action == GLFW_PRESS)
+    {
+      camera_mode = CameraMode::FREE;
+    }
+    else if(key == GLFW_KEY_0 && action == GLFW_PRESS)
+    {
+      camera_mode = CameraMode::BOID;
+      boid_select = 9;
+    }
+    else if(key == GLFW_KEY_1 && action == GLFW_PRESS)
+    {
+      camera_mode = CameraMode::BOID;
+      boid_select = 0; 
+    }
+    else if(key == GLFW_KEY_2 && action == GLFW_PRESS)
+    {
+      camera_mode = CameraMode::BOID;
+      boid_select = 1; 
+    }
+    else if(key == GLFW_KEY_3 && action == GLFW_PRESS)
+    {
+      camera_mode = CameraMode::BOID;
+      boid_select = 2; 
+    }
+    else if(key == GLFW_KEY_4 && action == GLFW_PRESS)
+    {
+      camera_mode = CameraMode::BOID;
+      boid_select = 3; 
+    }
+    else if(key == GLFW_KEY_5 && action == GLFW_PRESS)
+    {
+      camera_mode = CameraMode::BOID;
+      boid_select = 4; 
+    }
+    else if(key == GLFW_KEY_6 && action == GLFW_PRESS)
+    {
+      camera_mode = CameraMode::BOID;
+      boid_select = 5; 
+    }
+    else if(key == GLFW_KEY_7 && action == GLFW_PRESS)
+    {
+      camera_mode = CameraMode::BOID;
+      boid_select = 6; 
+    }
+    else if(key == GLFW_KEY_8 && action == GLFW_PRESS)
+    {
+      camera_mode = CameraMode::BOID;
+      boid_select = 7; 
+    }
+    else if(key == GLFW_KEY_9 && action == GLFW_PRESS)
+    {
+      camera_mode = CameraMode::BOID;
+      boid_select = 8; 
+    }
 
     if (key >= 0 && key < 1024)
     {
@@ -1572,8 +1700,8 @@ void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
       // don't forget to normalise the vector at some point
       ray_wor = glm::normalize (ray_wor);
 
-
       flock->addBoid(new Boid((camera->Position + ray_wor) + camera->Front*10.0f));
+      PRINT("BOID ADDED");
   }
 }
 
