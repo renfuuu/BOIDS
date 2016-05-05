@@ -49,7 +49,7 @@ enum {
 
 GLuint vao = 0;                   // This will store the VAO descriptor.
 enum {
-  kBoid
+  kBoid,
   kVelocity,
   kAcceleration,
   kAlign,
