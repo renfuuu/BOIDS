@@ -994,7 +994,7 @@ struct Boid
 
   glm::vec3 cohesion(std::vector<Boid*> boids)
   {
-    float neighbordist = 50;
+    float neighbordist = 100;
     glm::vec3 sum(0.0f);   // Start with empty vector to accumulate all locations
     int count = 0;
     for (Boid* other : boids) {
@@ -1157,6 +1157,8 @@ void Do_Movement();
 
 
 
+Flock* flock = new Flock;
+glm::mat4 projection; 
 
 int main()
 {
@@ -1221,20 +1223,6 @@ int main()
         -1.0f, -1.0f,  1.0f
     };
 
-
-    glm::vec3 cubePositions[] = {
-        glm::vec3(0.0f, 0.0f, 0.0f), 
-        glm::vec3(2.0f, 5.0f, -15.0f), 
-        glm::vec3(-1.5f, -2.2f, -2.5f),  
-        glm::vec3(-3.8f, -2.0f, -12.3f),  
-        glm::vec3(2.4f, -0.4f, -3.5f),  
-        glm::vec3(-1.7f, 3.0f, -7.5f),  
-        glm::vec3(1.3f, -2.0f, -2.5f),  
-        glm::vec3(1.5f, 2.0f, -2.5f), 
-        glm::vec3(1.5f, 0.2f, -1.5f), 
-        glm::vec3(-1.3f, 1.0f, -1.5f)  
-    };
-
     GLuint VBO, VAO;
     glGenVertexArrays(1, &VAO);
     glGenBuffers(1, &VBO);
@@ -1253,7 +1241,6 @@ int main()
     camera = new Camera(glm::vec3(0.0f, 0.0f, 3.0f));
     srand (static_cast <unsigned> (time(0)));
     
-    Flock* flock = new Flock;
 
     for (int i = 0; i < 10; ++i)
     {
@@ -1283,7 +1270,6 @@ int main()
         glm::vec4 light_position = glm::vec4(camera->Position, 1.0f);
         glm::mat4 view;
         view = camera->GetViewMatrix();
-        glm::mat4 projection; 
         projection = glm::perspective(camera->Zoom, (float)screenWidth/(float)screenHeight, 0.1f, 1000.0f);
         // projection = glm::ortho(0.0f, (float)screenWidth, (float)screenHeight, 0.0f);
 
@@ -1424,6 +1410,25 @@ void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
 {
   drag_state = (action == GLFW_PRESS);
   current_button = button;
+
+  if(button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS)
+  {
+
+      float x,y,z;
+      x = (2.0f*lastX)/screenWidth-1.0f;
+      y = 1.0f - (2.0f*lastY)/screenHeight;
+      glm::vec3 ray_nds = glm::vec3(x,y,1.0f);
+      glm::vec4 ray_clip = glm::vec4 (ray_nds.x,ray_nds.y, -1.0, 1.0);
+      glm::vec4 ray_eye = glm::inverse (projection) * ray_clip;
+      ray_eye = glm::vec4 (ray_eye.x, ray_eye.y, -1.0, 0.0);
+      glm::vec4 ray_wor4 = glm::inverse(camera->GetViewMatrix()) * ray_eye;
+      glm::vec3 ray_wor = glm::vec3(ray_wor4.x, ray_wor4.y, ray_wor4.z);
+      // don't forget to normalise the vector at some point
+      ray_wor = glm::normalize (ray_wor);
+
+
+      flock->addBoid(new Boid((camera->Position + ray_wor) + camera->Front*10.0f));
+  }
 }
 
 void error_callback(int error, const char* description) {

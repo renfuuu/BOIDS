@@ -1,9 +1,22 @@
-Welcome to Computer Graphics 
+CS354 - BOIDS
 -----------------------------
 Team Member 1: Kaleb Alanis 
 
 Team Member 2: Itoro Esiere
 
-Description: Introduction of the graphics pipeline by implementing a simple ”hello
-world” program that shows a spinning Stanford Bunny, sphere, and dragon
-# europa
+Description: Implementation of BOIDS/Flocking in 3 space.
+
+How to build:
+buildit.sh
+
+How to Run:
+runit.sh assignment
+
+Instructions:
+Press P - to Pause
+Press C - for Chaos State
+Press R - to make the boids return toward camera
+Press N - for Natural State
+
+
+Disclaimer: We both did the course instructor survey.
