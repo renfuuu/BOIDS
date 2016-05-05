@@ -870,6 +870,11 @@ struct Boid
   glm::vec3 aliIncentive;
   glm::vec3 sepIncentive;
 
+  glm::mat4 mModel;
+  glm::vec3 mTangent;
+  glm::vec3 mNormal;
+
+
   Boid(glm::vec3 pos)
   {
     mAcceleration = glm::vec3(0.0f);
@@ -883,18 +888,48 @@ struct Boid
     float c = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
     mColor = glm::vec3(a,b,c);
     mWeights = glm::vec3(1.0f);
+    // mTangent = glm::vec3(0.0f);
+    // mNormal = glm::vec3(0.0f);
+  }
+
+  Boid(glm::vec3 pos, glm::vec3 direction)
+  {
+    mVelocity = glm::normalize(direction);
+    mTangent = mVelocity;
+    mAcceleration = glm::vec3(0.0f);
+    mLocation = pos;
+    r = 2.0;
+    maxspeed = 2.0f;
+    maxforce = 0.03;
+
+    float a = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
+    float b = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
+    float c = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
+    mColor = glm::vec3(a,b,c);
+    mWeights = glm::vec3(1.0f);
+    
   }
 
   void update()
   {
+    glm::vec3 oldV = glm::normalize(mVelocity);
+
     mVelocity +=mAcceleration;
     if(glm::length(mVelocity) > maxspeed)
     {
-      glm::normalize(mVelocity);
+      mVelocity = glm::normalize(mVelocity);
       mVelocity = mVelocity*maxspeed;
     }
     mLocation += mVelocity;
     mAcceleration  = 0.0f*mAcceleration;
+
+    // //update normal 
+    // glm::vec3 nNewV = glm::normalize(mVelocity);
+    // glm::vec3 rotN = glm::cross(oldV, nNewV);
+    // float theta = glm::acos(glm::dot(oldV, nNewV)/(glm::length(oldV)*glm::length(nNewV)));
+
+    // mTangent = glm::rotate(oldV, theta, rotN);
+    // mNormal = glm::rotate(mNormal, theta, rotN);
   }
 
   void applyForce(glm::vec3 force)
@@ -905,13 +940,13 @@ struct Boid
   glm::vec3 seek(glm::vec3 target)
   {
     glm::vec3 desired = target - mLocation;
-    glm::normalize(desired);
+    desired = glm::normalize(desired);
     desired = desired*maxspeed;
 
     glm::vec3 steer = desired - mVelocity;
     if(glm::length(steer) > maxforce)
     {
-      glm::normalize(steer);
+      steer = glm::normalize(steer);
       steer = maxforce*steer;
     }
     return steer;
@@ -929,7 +964,7 @@ struct Boid
       float d = glm::length(diff);
       if((d>0) && (d < desiredSeparation))
       {
-        glm::normalize(diff);
+        diff = glm::normalize(diff);
         diff = (1.0f/d)*diff;
         steer += diff;
         count++; 
@@ -943,12 +978,12 @@ struct Boid
 
     if(glm::length(steer) > 0)
     {
-      glm::normalize(steer);
+      steer = glm::normalize(steer);
       steer = maxspeed*steer;
       steer -= mVelocity;
       if(glm::length(steer) > maxforce)
       {
-        glm::normalize(steer);
+        steer = glm::normalize(steer);
         steer = steer*maxforce;
       }
     }
@@ -975,12 +1010,12 @@ struct Boid
       // sum.setMag(maxspeed);
 
       // Implement Reynolds: Steering = Desired - Velocity
-      glm::normalize(sum);
+      // sum = glm::normalize(sum);
       sum = sum*maxspeed;
       glm::vec3 steer = sum - mVelocity;
       if(glm::length(steer) > maxforce)
       {
-        glm::normalize(steer);
+        steer = glm::normalize(steer);
         steer = steer*maxforce;
       }
       return steer;
@@ -1014,6 +1049,35 @@ struct Boid
   glm::vec3 color()
   {
     return mColor;
+  }
+
+  glm::vec3 generateNormal()
+  {
+    glm::vec3 tangent = glm::normalize(mVelocity);
+    int i = 0;
+    glm::vec3 v = tangent;
+    if(v.x < v.y)
+    {
+      if(v.x < v.z )
+      {
+        i = 0;
+      }
+    }
+    else
+    {
+      if(v.y < v.z)
+      {
+       i = 1;
+      }
+      else
+      {
+       i = 2;
+      }
+    }
+    v = glm::vec3(0.0f);
+    v[i] = 1.0f;
+    mNormal = glm::normalize(glm::cross(tangent, v));
+    return mNormal;
   }
 
   void run(std::vector<Boid*> boids)
@@ -1117,11 +1181,13 @@ struct Boid
   glm::mat4 model()
   {
     // glm::mat4 model(1.0);
-    glm::vec3 v = glm::normalize(mVelocity);
-    glm::vec3 a = glm::normalize(mAcceleration);
-    glm::vec3 cross = glm::cross(v, a);
+    // glm::vec3 t = glm::normalize(mVelocity);
+    // glm::vec3 n = glm::normalize(mNormal);
+    glm::vec3 t = mTangent;
+    glm::vec3 n = mNormal;
+    glm::vec3 cross = glm::cross(t, n);
     glm::mat4 model;
-    // model = glm::mat4(glm::vec4(v.x, v.y, v.z, 0.0f), glm::vec4(a.x,a.y,a.z, 0.0f), glm::vec4(cross.x, cross.y, cross.z, 0.0f), glm::vec4(0.0f,0.0f,0.0f,1.0f));
+    // model = glm::mat4(glm::vec4(t.x, t.y, t.z, 0.0f), glm::vec4(n.x,n.y,n.z, 0.0f), glm::vec4(cross.x, cross.y, cross.z, 0.0f), glm::vec4(0.0f,0.0f,0.0f,1.0f));
     model = glm::translate(model, mLocation);
     return model;
   }
