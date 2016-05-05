@@ -1202,25 +1202,25 @@ int main()
   std::cout << "OpenGL version supported:" << version << "\n";
 
     // Setup and compile our shaders
-    Shader ourShader = ResourceManager::LoadShader("shaders/mesh2d.vs", "shaders/mesh2d.frag", nullptr, "mesh2d");
+    Shader ourShader = ResourceManager::LoadShader("shaders/mesh2d.vs", "shaders/mesh2d.frag", "shaders/mesh2d.geo", "mesh2d");
     ResourceManager::GetShader("mesh2d").SetVector3f("meshColor", glm::vec3(1.0f,1.0f,0.0f));
     // Set up our vertex data (and buffer(s)) and attribute pointers
     GLfloat vertices[] = {
          0.0f,  6.0f,  0.0f,
-        -1.0f, -1.0f,  1.0f,
          1.0f, -1.0f,  1.0f,
-
-         0.0f,  6.0f,  0.0f,
-         1.0f, -1.0f,  1.0f,
-         1.0f, -1.0f, -1.0f,
-
-         0.0f,  6.0f,  0.0f,
-        -1.0f, -1.0f, -1.0f,
         -1.0f, -1.0f,  1.0f,
 
          0.0f,  6.0f,  0.0f,
          1.0f, -1.0f, -1.0f,
+         1.0f, -1.0f,  1.0f,
+
+         0.0f,  6.0f,  0.0f,
+        -1.0f, -1.0f,  1.0f,
         -1.0f, -1.0f, -1.0f,
+
+         0.0f,  6.0f,  0.0f,
+        -1.0f, -1.0f, -1.0f,
+         1.0f, -1.0f, -1.0f,
 
          1.0f, -1.0f, -1.0f,
         -1.0f, -1.0f,  1.0f,
@@ -1263,13 +1263,6 @@ int main()
     camera = new Camera(glm::vec3(0.0f, 0.0f, 3.0f));
     srand (static_cast <unsigned> (time(0)));
     
-    ResourceManager::LoadShader("shaders/sprite.vs", "shaders/sprite.frag", nullptr, "sprite");
-
-    ResourceManager::GetShader("sprite").Use().SetInteger("image", 0);
-
-
-    ResourceManager::LoadTexture("textures/awesomeface.png", GL_TRUE, "face");
-
     Flock* flock = new Flock;
 
     for (int i = 0; i < 10; ++i)
@@ -1297,6 +1290,7 @@ int main()
         ourShader.Use();
         
         // Create camera transformation
+        glm::vec4 light_position = glm::vec4(camera->Position, 1.0f);
         glm::mat4 view;
         view = camera->GetViewMatrix();
         glm::mat4 projection; 
@@ -1314,6 +1308,7 @@ int main()
         ResourceManager::GetShader("mesh2d").SetMatrix4("projection", projection);
         ResourceManager::GetShader("mesh2d").SetMatrix4("view", view);
 
+
         ourShader.Use();
         glBindVertexArray(VAO);
         for (std::vector<Boid*>::iterator i = flock->boids.begin(); i != flock->boids.end(); ++i)
@@ -1328,7 +1323,7 @@ int main()
             // glUniformMatrix4fv(modelLoc, 1, GL_FALSE, &model[0][0]);
             ResourceManager::GetShader("mesh2d").SetVector3f("meshColor", (*i)->color());
             ResourceManager::GetShader("mesh2d").SetMatrix4("model", (*i)->model());
-
+            ResourceManager::GetShader("mesh2d").SetVector4f("light_position", light_position);
 
             glDrawArrays(GL_TRIANGLES, 0, 36);      
         }
