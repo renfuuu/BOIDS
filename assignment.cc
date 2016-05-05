@@ -25,11 +25,6 @@
 #include <SDL.h> 
 #include <SOIL.h>
 
-// The Width of the screen
-const GLuint SCREEN_WIDTH = 800;
-// The height of the screen
-const GLuint SCREEN_HEIGHT = 600;
-
 
 bool drag_state = false;
 int current_button = -1;
@@ -63,6 +58,7 @@ enum {
 
 GLuint array_objects[kNumVaos];
 GLuint buffer_objects[kNumVbos];  // These will store VBO descriptors.
+
 const char* vertex_shader =
     "#version 330 core\n"
     "in vec3 vertex_position;" // A vector (x,y,z) representing the vertex's position
@@ -279,6 +275,8 @@ void LoadObj(const std::string& file, std::vector<glm::vec3>& vertices,
     }
 
 
+    
+
     myfile.close();
   }
   else {
@@ -316,6 +314,7 @@ void LoadObj(const std::string& file, std::vector<glm::vec4>& vertices,
           is >> v2;
           is >> v3;
 
+        
           vertices.push_back(glm::vec4(v1,v2,v3, 1.0f));
         }break;
         case 'f':
@@ -1147,18 +1146,13 @@ struct Flock
 
 };
 
-
-void Do_Movement();
-// Is called whenever a key is pressed/released via GLFW
-void key_callback(GLFWwindow* window, int key, int scancode, int action, int mode);
-
-void mouse_callback(GLFWwindow* window, double xpos, double ypos);
-
-void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
-
-void mouse_button_callback(GLFWwindow* window, int button, int action, int mods) ;
-
+// Function prototypes
 void error_callback(int error, const char* description);
+void key_callback(GLFWwindow* window, int key, int scancode, int action, int mode);
+void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
+void mouse_callback(GLFWwindow* window, double xpos, double ypos);
+void mouse_button_callback(GLFWwindow* window, int button, int action, int mods);
+void Do_Movement();
 
 
 
@@ -1198,52 +1192,36 @@ int main()
   std::cout << "OpenGL version supported:" << version << "\n";
 
     // Setup and compile our shaders
-    Shader ourShader = ResourceManager::LoadShader("shaders/mesh2d.vs", "shaders/mesh2d.frag", nullptr, "mesh2d");
+    Shader ourShader = ResourceManager::LoadShader("shaders/mesh2d.vs", "shaders/mesh2d.frag", "shaders/mesh2d.geo", "mesh2d");
     ResourceManager::GetShader("mesh2d").SetVector3f("meshColor", glm::vec3(1.0f,1.0f,0.0f));
     // Set up our vertex data (and buffer(s)) and attribute pointers
     GLfloat vertices[] = {
-        -0.5f, -0.5f, -0.5f,  0.0f, 0.0f,
-         0.5f, -0.5f, -0.5f,  1.0f, 0.0f,
-         0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-         0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-        -0.5f,  0.5f, -0.5f,  0.0f, 1.0f,
-        -0.5f, -0.5f, -0.5f,  0.0f, 0.0f,
+         0.0f,  6.0f,  0.0f,
+         1.0f, -1.0f,  1.0f,
+        -1.0f, -1.0f,  1.0f,
 
-        -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
-         0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
-         0.5f,  0.5f,  0.5f,  1.0f, 1.0f,
-         0.5f,  0.5f,  0.5f,  1.0f, 1.0f,
-        -0.5f,  0.5f,  0.5f,  0.0f, 1.0f,
-        -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
+         0.0f,  6.0f,  0.0f,
+         1.0f, -1.0f, -1.0f,
+         1.0f, -1.0f,  1.0f,
 
-        -0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-        -0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-        -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-        -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-        -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
-        -0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+         0.0f,  6.0f,  0.0f,
+        -1.0f, -1.0f,  1.0f,
+        -1.0f, -1.0f, -1.0f,
 
-         0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-         0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-         0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-         0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-         0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
-         0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+         0.0f,  6.0f,  0.0f,
+        -1.0f, -1.0f, -1.0f,
+         1.0f, -1.0f, -1.0f,
 
-        -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-         0.5f, -0.5f, -0.5f,  1.0f, 1.0f,
-         0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
-         0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
-        -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
-        -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+         1.0f, -1.0f, -1.0f,
+        -1.0f, -1.0f,  1.0f,
+         1.0f, -1.0f,  1.0f, 
 
-        -0.5f,  0.5f, -0.5f,  0.0f, 1.0f,
-         0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-         0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-         0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-        -0.5f,  0.5f,  0.5f,  0.0f, 0.0f,
-        -0.5f,  0.5f, -0.5f,  0.0f, 1.0f
+         1.0f, -1.0f, -1.0f,
+        -1.0f, -1.0f, -1.0f,
+        -1.0f, -1.0f,  1.0f
     };
+
+
     glm::vec3 cubePositions[] = {
         glm::vec3(0.0f, 0.0f, 0.0f), 
         glm::vec3(2.0f, 5.0f, -15.0f), 
@@ -1267,7 +1245,7 @@ int main()
     glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
 
     // Position attribute
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(GLfloat), (GLvoid*)0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), (GLvoid*)0);
     glEnableVertexAttribArray(0);
 
     glBindVertexArray(0); // Unbind VAO
@@ -1275,13 +1253,6 @@ int main()
     camera = new Camera(glm::vec3(0.0f, 0.0f, 3.0f));
     srand (static_cast <unsigned> (time(0)));
     
-    ResourceManager::LoadShader("shaders/sprite.vs", "shaders/sprite.frag", nullptr, "sprite");
-
-    ResourceManager::GetShader("sprite").Use().SetInteger("image", 0);
-
-
-    ResourceManager::LoadTexture("textures/awesomeface.png", GL_TRUE, "face");
-
     Flock* flock = new Flock;
 
     for (int i = 0; i < 10; ++i)
@@ -1309,6 +1280,7 @@ int main()
         ourShader.Use();
         
         // Create camera transformation
+        glm::vec4 light_position = glm::vec4(camera->Position, 1.0f);
         glm::mat4 view;
         view = camera->GetViewMatrix();
         glm::mat4 projection; 
@@ -1326,6 +1298,7 @@ int main()
         ResourceManager::GetShader("mesh2d").SetMatrix4("projection", projection);
         ResourceManager::GetShader("mesh2d").SetMatrix4("view", view);
 
+
         ourShader.Use();
         glBindVertexArray(VAO);
         for (std::vector<Boid*>::iterator i = flock->boids.begin(); i != flock->boids.end(); ++i)
@@ -1340,7 +1313,7 @@ int main()
             // glUniformMatrix4fv(modelLoc, 1, GL_FALSE, &model[0][0]);
             ResourceManager::GetShader("mesh2d").SetVector3f("meshColor", (*i)->color());
             ResourceManager::GetShader("mesh2d").SetMatrix4("model", (*i)->model());
-
+            ResourceManager::GetShader("mesh2d").SetVector4f("light_position", light_position);
 
             glDrawArrays(GL_TRIANGLES, 0, 36);      
         }
