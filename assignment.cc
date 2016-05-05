@@ -34,6 +34,7 @@ int current_button = -1;
 int screenWidth = 800, screenHeight = 600;
 const std::string window_title = "OBJ Loader";
 
+#define PRINT(x) std::cout<<x<<std::endl;
 
 
 // VBO and VAO descriptors.
@@ -836,6 +837,8 @@ bool firstMouse = true;
 GLfloat deltaTime = 0.0f;
 GLfloat lastFrame = 0.0f;
 
+float boundaryRadius = 100.0f;
+
 // The MAIN function, from here we start our application and run our Game loop
 
 
@@ -897,11 +900,6 @@ struct Boid
   void applyForce(glm::vec3 force)
   {
     mAcceleration += force;
-    if(glm::length(mAcceleration) > maxforce)
-      {
-        glm::normalize(mAcceleration);
-        mAcceleration = mAcceleration*maxforce;
-      }
   }
 
   glm::vec3 seek(glm::vec3 target)
@@ -1056,6 +1054,11 @@ struct Boid
     glm::vec3 sep = separate(boids);
     glm::vec3 ali = align(boids);
     glm::vec3 coh = cohesion(boids);
+    
+    if(glm::length(mLocation) > boundaryRadius)
+    {
+      applyForce(5.0f*seek(camera->Position));
+    }
 
     if(steertype == SteerState::NATURAL)
     {
@@ -1103,11 +1106,22 @@ struct Boid
       applyForce(ali);
       applyForce(coh);
     }
+
+    if(glm::length(mAcceleration) > maxforce)
+    {
+      glm::normalize(mAcceleration);
+      mAcceleration = mAcceleration*maxforce;
+    }
   }
 
   glm::mat4 model()
   {
-    glm::mat4 model(1.0f);
+    // glm::mat4 model(1.0);
+    glm::vec3 v = glm::normalize(mVelocity);
+    glm::vec3 a = glm::normalize(mAcceleration);
+    glm::vec3 cross = glm::cross(v, a);
+    glm::mat4 model;
+    // model = glm::mat4(glm::vec4(v.x, v.y, v.z, 0.0f), glm::vec4(a.x,a.y,a.z, 0.0f), glm::vec4(cross.x, cross.y, cross.z, 0.0f), glm::vec4(0.0f,0.0f,0.0f,1.0f));
     model = glm::translate(model, mLocation);
     return model;
   }
@@ -1360,16 +1374,17 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
     else if(key == GLFW_KEY_N && action == GLFW_PRESS)
     {
       steer_state = SteerState::NATURAL;
+      PRINT("NATURAL");
     }
     else if(key == GLFW_KEY_R && action == GLFW_PRESS)
     {
-      steer_state++;
       steer_state =  SteerState::RETURN;
+      PRINT("RETURN");
     }
     else if(key == GLFW_KEY_C && action == GLFW_PRESS)
     {
-      steer_state++;
       steer_state =  SteerState::CHAOS;
+      PRINT("CHAOS");
     }
 
 
@@ -1380,6 +1395,8 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
         else if(action == GLFW_RELEASE)
             keys[key] = false;  
     }
+
+
 }
 
 void mouse_callback(GLFWwindow* window, double xpos, double ypos)
