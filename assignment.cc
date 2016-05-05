@@ -34,9 +34,6 @@ const GLuint SCREEN_HEIGHT = 600;
 bool drag_state = false;
 int current_button = -1;
 
-// #define DEBUG 
-
-
 
 int window_width = 800, window_height = 600;
 const std::string window_title = "OBJ Loader";
@@ -119,25 +116,25 @@ const char* sprite_fragment_shader =
   "}";
 
 const char* mesh_vertex_shader =
-"#version 330 core"
-"in vec2 TexCoords;"
-"out vec4 color;"
-"uniform vec3 meshColor;"
-"void main()"
-"{   " 
-"    color = vec4(meshColor, 1.0);"
-"} "
+  "#version 330 core"
+  "in vec2 TexCoords;"
+  "out vec4 color;"
+  "uniform vec3 meshColor;"
+  "void main()"
+  "{   " 
+  "    color = vec4(meshColor, 1.0);"
+  "} "
 const char* mesh_frag_shader =
-"#version 330 core"
-"layout (location = 0) in vec4 vertex; // <vec2 position, vec2 texCoords>"
-"uniform mat4 model;"
-"uniform mat4 view;"
-"uniform mat4 projection;"
-""
-"void main()"
-"{"
-"    gl_Position = projection* view * model * vec4(vertex.xyz, 1.0);"
-"}";
+  "#version 330 core"
+  "layout (location = 0) in vec4 vertex; // <vec2 position, vec2 texCoords>"
+  "uniform mat4 model;"
+  "uniform mat4 view;"
+  "uniform mat4 projection;"
+  ""
+  "void main()"
+  "{"
+  "    gl_Position = projection* view * model * vec4(vertex.xyz, 1.0);"
+  "}";
 
 // // Functions and macros to help debug GL errors
 
@@ -453,7 +450,7 @@ void LoadObj(const std::string& file, std::vector<glm::vec4>& vertices,
 //----------------------------------------------------------------------------
 class Shader
 {
-public:
+  @public:
     // State
     GLuint ID; 
     // Constructor
@@ -565,7 +562,7 @@ public:
         glUniformMatrix4fv(glGetUniformLocation(this->ID, name), 1, GL_FALSE, &matrix[0][0]);
     }
 
-private:
+  private:
     // Checks if compilation or linking failed and if so, print the error logs
     void checkCompileErrors(GLuint object, std::string type)
     {
@@ -614,7 +611,7 @@ const GLfloat ZOOM       =  45.0f;
 // An abstract camera class that processes input and calculates the corresponding Eular Angles, Vectors and Matrices for use in OpenGL
 class Camera
 {
-public:
+  public:
     // Camera Attributes
     glm::vec3 Position;
     glm::vec3 Front;
@@ -715,7 +712,7 @@ public:
             this->Zoom = 45.0f;
     }
 
-private:
+  private:
     // Calculates the front vector from the Camera's (updated) Eular Angles
     void updateCameraVectors()
     {
@@ -733,7 +730,7 @@ private:
 
 class Texture2D
 {
-public:
+  public:
     // Holds the ID of the texture object, used for all texture operations to reference to this particlar texture
     GLuint ID;
     // Texture image dimensions
@@ -778,27 +775,27 @@ public:
 
 class ResourceManager
 {
-public:
-    // Resource storage
-    static std::map<std::string, Shader>    Shaders;
-    static std::map<std::string, Texture2D> Textures;
-    // Loads (and generates) a shader program from file loading vertex, fragment (and geometry) shader's source code. If gShaderFile is not nullptr, it also loads a geometry shader
-    static Shader   LoadShader(const GLchar *vShaderFile, const GLchar *fShaderFile, const GLchar *gShaderFile, std::string name);
-    // Retrieves a stored sader
-    static Shader   GetShader(std::string name);
-    // Loads (and generates) a texture from file
-    static Texture2D LoadTexture(const GLchar *file, GLboolean alpha, std::string name);
-    // Retrieves a stored texture
-    static Texture2D GetTexture(std::string name);
-    // Properly de-allocates all loaded resources
-    static void      Clear();
-private:
-    // Private constructor, that is we do not want any actual resource manager objects. Its members and functions should be publicly available (static).
-    ResourceManager() { }
-    // Loads and generates a shader from file
-    static Shader    loadShaderFromFile(const GLchar *vShaderFile, const GLchar *fShaderFile, const GLchar *gShaderFile = nullptr);
-    // Loads a single texture from file
-    static Texture2D loadTextureFromFile(const GLchar *file, GLboolean alpha);
+  public:
+      // Resource storage
+      static std::map<std::string, Shader>    Shaders;
+      static std::map<std::string, Texture2D> Textures;
+      // Loads (and generates) a shader program from file loading vertex, fragment (and geometry) shader's source code. If gShaderFile is not nullptr, it also loads a geometry shader
+      static Shader   LoadShader(const GLchar *vShaderFile, const GLchar *fShaderFile, const GLchar *gShaderFile, std::string name);
+      // Retrieves a stored sader
+      static Shader   GetShader(std::string name);
+      // Loads (and generates) a texture from file
+      static Texture2D LoadTexture(const GLchar *file, GLboolean alpha, std::string name);
+      // Retrieves a stored texture
+      static Texture2D GetTexture(std::string name);
+      // Properly de-allocates all loaded resources
+      static void      Clear();
+  private:
+      // Private constructor, that is we do not want any actual resource manager objects. Its members and functions should be publicly available (static).
+      ResourceManager() { }
+      // Loads and generates a shader from file
+      static Shader    loadShaderFromFile(const GLchar *vShaderFile, const GLchar *fShaderFile, const GLchar *gShaderFile = nullptr);
+      // Loads a single texture from file
+      static Texture2D loadTextureFromFile(const GLchar *file, GLboolean alpha);
 };
 
 
@@ -903,416 +900,260 @@ Texture2D ResourceManager::loadTextureFromFile(const GLchar *file, GLboolean alp
     return texture;
 }
 
-class SpriteRenderer
+struct Flock
 {
-    private:
-      Shader shader; 
-      GLuint quadVAO;
+  std::vector<Boid*> boids;
 
-    public:
-      SpriteRenderer(Shader sh)
-      {
-        shader = sh;
-        this->initRenderData();
-      }
-
-      ~SpriteRenderer()
-      {}
-
-      void DrawSprite(Texture2D texture, glm::vec2 position, glm::vec2 size = glm::vec2(10, 10), GLfloat rotate = 0.0f, glm::vec3 color = glm::vec3(1.0f))
-      {
-        // Prepare transformations
-        this->shader.Use();
-        glm::mat4 model;
-        model = glm::translate(model, glm::vec3(position, 0.0f));  
-
-        model = glm::translate(model, glm::vec3(0.5f * size.x, 0.5f * size.y, 0.0f)); 
-        model = glm::rotate(model, rotate, glm::vec3(0.0f, 0.0f, 1.0f)); 
-        model = glm::translate(model, glm::vec3(-0.5f * size.x, -0.5f * size.y, 0.0f));
-
-        model = glm::scale(model, glm::vec3(size, 1.0f)); 
-      
-        this->shader.SetMatrix4("model", model);
-        this->shader.SetVector3f("spriteColor", color);
-      
-        glActiveTexture(GL_TEXTURE0);
-        texture.Bind();
-
-        glBindVertexArray(this->quadVAO);
-        glDrawArrays(GL_TRIANGLES, 0, 6);
-        glBindVertexArray(0);
-      }
-
-      void initRenderData()
-      {
-        // Configure VAO/VBO
-        GLuint VBO;
-        GLfloat vertices[] = { 
-          0.0f, 1.0f, 0.0f, 1.0f,
-            1.0f, 0.0f, 1.0f, 0.0f,
-            0.0f, 0.0f, 0.0f, 0.0f, 
-        
-            0.0f, 1.0f, 0.0f, 1.0f,
-            1.0f, 1.0f, 1.0f, 1.0f,
-            1.0f, 0.0f, 1.0f, 0.0f
-        };
-
-        glGenVertexArrays(1, &this->quadVAO);
-        glGenBuffers(1, &VBO);
-        
-        glBindBuffer(GL_ARRAY_BUFFER, VBO);
-        glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-
-        glBindVertexArray(this->quadVAO);
-        glEnableVertexAttribArray(0);
-        // glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 4 * sizeof(GLfloat), (GLvoid*)0);
-        glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 0, (GLvoid*)0);
-
-        glBindBuffer(GL_ARRAY_BUFFER, 0);  
-        glBindVertexArray(0);
-      }
-};
-
-class TriangleRenderer
-{
-    private:
-      Shader shader; 
-      GLuint quadVAO;
-
-    public:
-      TriangleRenderer(Shader sh)
-      {
-        shader = sh;
-        this->initRenderData();
-      }
-
-      ~TriangleRenderer()
-      {}
-
-      void DrawTriangle(Texture2D texture, glm::vec2 position, glm::vec2 size = glm::vec2(10, 10), GLfloat rotate = 0.0f, glm::vec3 color = glm::vec3(1.0f))
-      {
-        // Prepare transformations
-        this->shader.Use();
-        glm::mat4 model;
-        model = glm::translate(model, glm::vec3(position, 0.0f));  
-
-        model = glm::translate(model, glm::vec3(0.5f * size.x, 0.5f * size.y, 0.0f)); 
-        model = glm::rotate(model, rotate, glm::vec3(0.0f, 0.0f, 1.0f)); 
-        model = glm::translate(model, glm::vec3(-0.5f * size.x, -0.5f * size.y, 0.0f));
-
-        model = glm::scale(model, glm::vec3(size, 1.0f)); 
-      
-        this->shader.SetMatrix4("model", model);
-        this->shader.SetVector3f("triColor", color);
-      
-        glActiveTexture(GL_TEXTURE0);
-        texture.Bind();
-
-        glBindVertexArray(this->quadVAO);
-        glDrawArrays(GL_TRIANGLES, 0, 6);
-        glBindVertexArray(0);
-      }
-
-      void initRenderData()
-      {
-        // Configure VAO/VBO
-        GLuint VBO;
-        GLfloat vertices[] = { 
-            0.0f, 1.0f, 0.0f, 1.0f,
-            1.0f, 0.0f, 1.0f, 0.0f,
-            0.0f, 0.0f, 0.0f, 0.0f, 
-        
-            0.0f, 1.0f, 0.0f, 1.0f,
-            1.0f, 1.0f, 1.0f, 1.0f,
-            1.0f, 0.0f, 1.0f, 0.0f
-        };
-
-        glGenVertexArrays(1, &this->quadVAO);
-        glGenBuffers(1, &VBO);
-        
-        glBindBuffer(GL_ARRAY_BUFFER, VBO);
-        glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-
-        glBindVertexArray(this->quadVAO);
-        glEnableVertexAttribArray(0);
-        // glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 4 * sizeof(GLfloat), (GLvoid*)0);
-        glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 0, (GLvoid*)0);
-
-        glBindBuffer(GL_ARRAY_BUFFER, 0);  
-        glBindVertexArray(0);
-      }
-};
-
-struct Mesh
-{
-  std::vector<glm::vec4> vertices;
-  std::vector<glm::uvec3> faces;
-  GLuint vao;
-  GLuint vbos[kNumVbos]; 
-
-  Mesh()
-  {
-  }
-
-  ~Mesh()
+  Flock()
   {}
 
-  void load(std::string filename)
+  void addBoid(Boid* b)
   {
-    LoadObj(filename, vertices, faces);
-  }
-
-  void setup()
-  {
-     // Setup our VAO.
-    CHECK_GL_ERROR(glGenVertexArrays(1, &vao));
-
-    // Switch to the VAO.
-    CHECK_GL_ERROR(glBindVertexArray(vao));
-
-    // Generate buffer objects
-    CHECK_GL_ERROR(glGenBuffers(2, vbos));
-
-    // Setup vertex data in a VBO.
-    CHECK_GL_ERROR(glBindBuffer(GL_ARRAY_BUFFER, vbos[kVertexBuffer]));
-    // NOTE: We do not send anything right now, we just describe it to OpenGL.
-    CHECK_GL_ERROR(glBufferData(GL_ARRAY_BUFFER,
-                                sizeof(float) * vertices.size() * 4, nullptr,
-                                GL_STATIC_DRAW));
-    CHECK_GL_ERROR(glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 0, 0));
-    CHECK_GL_ERROR(glEnableVertexAttribArray(0));
-
-    // Setup element array buffer.
-    CHECK_GL_ERROR(
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vbos[kIndexBuffer]));
-    CHECK_GL_ERROR(glBufferData(GL_ELEMENT_ARRAY_BUFFER,
-                                sizeof(uint32_t) * faces.size() * 3,
-                                &faces[0], GL_STATIC_DRAW));
-  }
-
-  void bindVao()
-  {
-    CHECK_GL_ERROR(glBindVertexArray(vao));
-  }
-
-  void unbind()
-  {
-    CHECK_GL_ERROR(glBindVertexArray(0));
-  }
-
-  void draw(Shader shader, glm::mat4 projection, glm::mat4 view, glm::vec3 color)
-  {   bindVao();
-      shader.SetMatrix4("projection", projection);
-      shader.SetMatrix4("view", view);
-      shader.SetVector3f("meshColor", color);
-      CHECK_GL_ERROR(
-        glDrawElements(GL_TRIANGLES, faces.size() * 3, GL_UNSIGNED_INT, 0));
-      unbind();
-  }
-
-  void bindBuffers()
-  {
-    CHECK_GL_ERROR(
-        glBindBuffer(GL_ARRAY_BUFFER, vbos[kVertexBuffer]));
-    CHECK_GL_ERROR(glBufferData(GL_ARRAY_BUFFER,
-                                sizeof(float) * vertices.size() * 4,
-                                &vertices[0], GL_STATIC_DRAW));
+    boids.push_back(b);
   }
 };
-
-// class Mesh2d
-// {
-//   private:
-//     Shader shader;
-//     GLuint buffer_objects[kNumVbos];
-//     std::vector<glm::vec3> vertices;
-//     std::vector<glm::uvec3> faces;
-//     GLuint VAO;
-//   public:
-//     Mesh2d(std::string filename, Shader s)
-//     {
-//       this->shader = s;
-
-//       LoadObj(filename, this->vertices, this->faces);
-//       // Setup our VAOs.
-//       std::cout << "vertices size:: " <<vertices.size()<< " indicies size:: "<<faces.size()<<std::endl;
-
-//       CHECK_GL_ERROR(glGenVertexArrays(1, &VAO));
-
-//       // Setup the object array object.
-
-//       CHECK_GL_ERROR(glBindVertexArray(VAO));
-
-//       CHECK_GL_ERROR(glGenBuffers(kNumVbos, &buffer_objects[0]));
-
-//       // Setup vertex data in a VBO.
-//       CHECK_GL_ERROR(
-//           glBindBuffer(GL_ARRAY_BUFFER, buffer_objects[kVertexBuffer]));
-//       CHECK_GL_ERROR(glBufferData(GL_ARRAY_BUFFER,
-//                                   sizeof(float) * vertices.size() * 3,
-//                                   &vertices[0], GL_STATIC_DRAW));
-//       CHECK_GL_ERROR(glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0));
-//       CHECK_GL_ERROR(glEnableVertexAttribArray(0));
-
-//       // Setup element array buffer.
-//       CHECK_GL_ERROR(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER,
-//                                   buffer_objects[kIndexBuffer]));
-//       CHECK_GL_ERROR(glBufferData(GL_ELEMENT_ARRAY_BUFFER,
-//                                   sizeof(uint32_t) * faces.size() * 3,
-//                                   &faces[0], GL_STATIC_DRAW));
-//     }
-
-//     void DrawMesh(glm::vec2 position, glm::vec2 size = glm::vec2(10, 10), GLfloat rotate = 0.0f, glm::vec3 color = glm::vec3(1.0f), Texture2D* texture = NULL)
-//     {
-//       this->shader.Use();
-//       glm::mat4 model;
-//       model = glm::translate(model, glm::vec3(position, 0.0f));  
-
-//       model = glm::translate(model, glm::vec3(0.5f * size.x, 0.5f * size.y, 0.0f)); 
-//       model = glm::rotate(model, rotate, glm::vec3(0.0f, 0.0f, 1.0f)); 
-//       model = glm::translate(model, glm::vec3(-0.5f * size.x, -0.5f * size.y, 0.0f));
-
-//       model = glm::scale(model, glm::vec3(size, 1.0f)); 
-    
-//       this->shader.SetMatrix4("model", model);
-//       this->shader.SetVector3f("meshColor", color);
-//       // glm::mat4 projection = glm::ortho(0.0f, 1.0f, 0.0f, 1.0f, 0.0f, 5.0f);
-//       // glm::mat4 projection = glm::ortho(0.0f, 800.0f, 0.0f, 600.0f, 0.1f, 100.0f);
-//       glm::mat4 projection = glm::mat4(1.0f);
-
-//       this->shader.SetMatrix4("projection", projection);
-
-
-//       if(texture)
-//       {
-//         glActiveTexture(GL_TEXTURE0);
-//         texture->Bind();
-//       }
-
-//       glBindVertexArray(this->VAO);
-//       CHECK_GL_ERROR(glDrawElements(GL_TRIANGLES, this->faces.size() * 3, GL_UNSIGNED_INT, 0)); 
-//       // glDrawArrays(GL_TRIANGLES, 0, vertices.size()*3);
-//       glBindVertexArray(0);
-//     }
-// };
-//------------------------------------------------------------------------------------------------
-
-// // GLFW function declerations
-// void key_callback(GLFWwindow* window, int key, int scancode, int action, int mode);
-
-
-
-// SpriteRenderer* Renderer;
-// TriangleRenderer* TriRender;
-
-
-// Mesh2d* mesh1;
-// Mesh2d* mesh2;
-// Mesh2d* mesh3;
-
-
-void init()
-{
-
-
-  // glm::mat4 projection = glm::ortho(0.0f, static_cast<GLfloat>(SCREEN_WIDTH), 
-  //     static_cast<GLfloat>(SCREEN_HEIGHT), 0.0f, -100.0f, 100.0f);
-  
-
-  // // Load shaders
-  // ResourceManager::LoadShader("shaders/triangle.vs", "shaders/triangle.frag", nullptr, "tri");
-  // ResourceManager::LoadShader("shaders/sprite.vs", "shaders/sprite.frag", nullptr, "sprite");
-  
-  // // Configure shaders
-  // ResourceManager::GetShader("sprite").Use().SetInteger("image", 0);
-  // ResourceManager::GetShader("tri").Use().SetInteger("image", 0);
-
-  // ResourceManager::GetShader("sprite").SetMatrix4("projection", projection);
-  // ResourceManager::GetShader("tri").SetMatrix4("projection", projection);
-  // ResourceManager::LoadTexture("textures/awesomeface.png", GL_TRUE, "face");
-
-  // Shader triangleShader;
-  // triangleShader = ResourceManager::GetShader("tri");
-  // TriRender = new TriangleRenderer(triangleShader);
-
-  // // Set render-specific controls
-  // Shader spriteShader;
-  // spriteShader = ResourceManager::GetShader("sprite");
-  // Renderer = new SpriteRenderer(spriteShader);  // Load textures
-
-
-
-
- 
-
-  // ResourceManager::LoadShader("shaders/mesh2d.vs", "shaders/mesh2d.frag", nullptr, "mesh2d");
-  // ResourceManager::GetShader("mesh2d").SetMatrix4("projection", projection);
-  // Shader meshShader;
-  // meshShader = ResourceManager::GetShader("mesh2d");
-
-  // std::string objfilename = "obj/alligator.obj";
-  // mesh1 = new Mesh2d(objfilename, meshShader);
-
-  // objfilename = "obj/bunny.obj";
-  // mesh2 = new Mesh2d(objfilename, meshShader);
-
-  // objfilename = "obj/triangle.obj";
-  // mesh3 = new Mesh2d(objfilename, meshShader);
-
-
-
-
-}
-
-// void render()
-// {
-//   Renderer->DrawSprite(ResourceManager::GetTexture("face"), 
-//         glm::vec2(200, 200), glm::vec2(100, 100), 0.45f, glm::vec3(0.0f, 1.0f, 0.0f));
-
-//   // mesh1->DrawMesh(glm::vec2(0.0f, 0.0f), glm::vec2(0.5f, 0.25f), 0.0f, glm::vec3(0.0f,0.6f,0.4f));
-//   // mesh2->DrawMesh(glm::vec2(0.2f, 0.5f), glm::vec2(1.0f, 1.0f), 0.0f, glm::vec3(0.0f,0.6f,0.0f));
-//   // mesh3->DrawMesh(glm::vec2(0.7f, 0.2f), glm::vec2(1.0f, 1.0f), 0.0f, glm::vec3(1.0f,0.0f,0.0f));
-//   TriRender->DrawTriangle(ResourceManager::GetTexture("face"), glm::vec2(200, 200), glm::vec2(50, 50), 0.0f, glm::vec3(1.0f,1.0f,1.0f));
-// }
-
-// void cleanup()
-// {
-//   delete Renderer;
-//   delete TriRender;
-//   delete mesh1;
-//   delete mesh2;
-//   delete mesh3;
-
-// }
-
-
-class BoidSpace;
 
 struct Boid
 {
-  glm::mat4 mModel;
-  glm::vec2 mPosition;
-  glm::vec2 mDirection;
-  BoidSpace* pSpace;
+  glm::vec3 mLocation;
+  glm::vec3 mVelocity;
+  glm::vec3 mAcceleration;
+  float r;
+  float maxforce;
+  float maxspeed;
+
   glm::vec3 mColor;
-  float mSpeed;
 
 
 
-  Boid(glm::vec2 pos, glm::vec2 dir, glm::vec3 color, BoidSpace* space)
-    : mPosition(pos), mDirection(dir), mColor(color), pSpace(space)
+  Boid(glm::vec3 pos)
   {
-    mSpeed = 2.0;
+    mAcceleration = glm::vec3(0.0f);
+    float angle = static_cast <float> (rand()) / (static_cast <float> (RAND_MAX/X));
+    location = pos;
+    r = 2.0;
+    maxspeed = 2;
+    maxforce = 0.03;
   }
 
   void update()
   {
-    mPosition += mSpeed*mDirection;
+    mVelocity +=mAcceleration;
+    if(glm::length(mVelocity) > maxspeed)
+    {
+      glm::normalize(mVelocity);
+      mVelocity = mVelocity*maxspeed;
+    }
+    mLocation += mVelocity;
+    mAcceleration  = mAcceleration*0;
   }
 
-  void render(TriangleRenderer* tr)
+  void applyForce(glm::vec3 force)
   {
-     GLfloat vertices[] = {
+    mAcceleration += force;
+  }
+
+  glm::vec3 seek(glm::vec3 target)
+  {
+    glm::vec3 desired = target - mLocation;
+    glm::normalize(desired);
+    desired = desired*maxspeed;
+
+    glm::vec3 steer = desired - velocity;
+    if(glm::length(steer) > maxforce)
+    {
+      glm::normalize(steer);
+      steer = maxforce*steer;
+    }
+    return steer;
+  }
+
+  glm::vec3 separate(std::vector<Boid*> boids)
+  {
+    float desiredSeparation = 25.0f;
+    glm::vec3 steer(0.0f);
+    int count = 0;
+
+    for(Boid* other: boids)
+    { 
+      glm::vec3 diff = mLocation - other->mLocation;
+      float d = glm::length(diff);
+      if((d>0) && (d < desiredSeparation))
+      {
+        glm::normalize(diff);
+        diff = (1.0f/d)*diff;
+        steer += diff;
+        count++; 
+      }
+    }
+
+    if(count > 0)
+    {
+      steer = (1.0f/count)*steer;
+    }
+
+    if(glm::length(steer) > 0)
+    {
+      glm::normalize(steer);
+      steer = maxspeed*steer;
+      steer -= mVelocity;
+      if(glm::length(steer) > maxforce)
+      {
+        glm::normalize(steer);
+        steer = steer*maxforce;
+      }
+    }
+    return steer;
+  }
+
+  glm::vec3 align(std::vector<Boid*> boids)
+  {
+    float neighbordist = 50;
+    glm::vec3 sum(0.0f,0.0f,0.0f);
+    int count = 0;
+    for (Boid other : boids) {
+      float d = glm::length(mLocation - other->mLocation);
+      if ((d > 0) && (d < neighbordist)) 
+      {
+        sum += other->mVelocity;
+        count++;
+      }
+    }
+    if (count > 0) {
+      sum *= (1.0f/(float)count);
+      // First two lines of code below could be condensed with new PVector setMag() method
+      // Not using this method until Processing.js catches up
+      // sum.setMag(maxspeed);
+
+      // Implement Reynolds: Steering = Desired - Velocity
+      glm::normalize(sum);
+      sum = sum*maxspeed;
+      glm::vec3 steer = sum - mVelocity;
+      if(glm::length(steer) > maxforce)
+      {
+        glm::normalize(steer);
+        steer = steer*maxforce;
+      }
+      return steer;
+    } 
+    else {
+      return new PVector(0, 0);
+    }
+  }
+
+  glm::vec3 cohesion(std::vector<Boid*> boids)
+  {
+    float neighbordist = 50;
+    glm::vec3 sum(0, 0);   // Start with empty vector to accumulate all locations
+    int count = 0;
+    for (Boid other : boids) {
+      float d = glm::length(mLocation, other->mLocation);
+      if ((d > 0) && (d < neighbordist)) {
+        sum += other->mLocation); // Add location
+        count++;
+      }
+    }
+    if (count > 0) {
+      sum *= (1.0f/(float)count);
+      return seek(sum);  // Steer towards the location
+    } 
+    else {
+      return new PVector(0, 0);
+    }
+  }
+
+  void run(std::vector<Boid*> boids)
+  {
+    flock(boids);
+    update();
+  }
+
+  void flock(std::vector<Boid*> boids)
+  {
+    glm::vec3 sep = separate(boids);
+    glm::vec3 ali = align(boids);
+    glm::vec3 coh = cohesion(boids);
+
+    //weights here are artibrary, maybe add evolutionary algorithm for points
+
+    sep = 1.0*sep;
+    ali = 1.0*ali;
+    coh = 1.0*coh;
+
+    applyForce(sep);
+    applyForce(ali);
+    applyForce(coh);
+  }
+
+  glm::mat4 Model()
+  {
+    glm::mat4 model(1.0f);
+    model = glm::translate(model, mLocation);
+  }
+};
+
+
+// Properties
+GLuint screenWidth = 800, screenHeight = 600;
+
+// Function prototypes
+void error_callback(int error, const char* description);
+void key_callback(GLFWwindow* window, int key, int scancode, int action, int mode);
+void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
+void mouse_callback(GLFWwindow* window, double xpos, double ypos);
+void mouse_button_callback(GLFWwindow* window, int button, int action, int mods);
+void Do_Movement();
+
+// Camera
+Camera* camera;
+bool keys[1024];
+GLfloat lastX = 400, lastY = 300;
+bool firstMouse = true;
+
+GLfloat deltaTime = 0.0f;
+GLfloat lastFrame = 0.0f;
+
+// The MAIN function, from here we start our application and run our Game loop
+
+
+
+
+int main()
+{
+    // Init GLFW
+ 
+  if (!glfwInit()) exit(EXIT_FAILURE);
+  glfwSetErrorCallback(error_callback);
+  glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+  glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+  glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
+  glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+  glfwWindowHint(GLFW_SAMPLES, 4);
+  GLFWwindow* window = glfwCreateWindow(window_width, window_height,
+                                        "Boids", nullptr, nullptr);
+  CHECK_SUCCESS(window != nullptr);
+
+  glfwMakeContextCurrent(window);
+  
+  glewExperimental = GL_TRUE;
+  CHECK_SUCCESS(glewInit() == GLEW_OK);
+  glGetError();  // clear GLEW's error for it
+
+  glfwSetKeyCallback(window, key_callback);
+  glfwSetCursorPosCallback(window, mouse_callback);
+  glfwSetMouseButtonCallback(window, mouse_button_callback);
+  glfwSetScrollCallback(window, scroll_callback);
+  glfwSwapInterval(1);
+  const GLubyte* renderer = glGetString(GL_RENDERER);  // get renderer string
+  const GLubyte* version = glGetString(GL_VERSION);    // version as a string
+  std::cout << "Renderer: " << renderer << "\n";
+  std::cout << "OpenGL version supported:" << version << "\n";
+
+    // Setup and compile our shaders
+    Shader ourShader = ResourceManager::LoadShader("shaders/mesh2d.vs", "shaders/mesh2d.frag", nullptr, "mesh2d");
+    ResourceManager::GetShader("mesh2d").SetVector3f("meshColor", glm::vec3(1.0f,1.0f,0.0f));
+    // Set up our vertex data (and buffer(s)) and attribute pointers
+    GLfloat vertices[] = {
         -0.5f, -0.5f, -0.5f,  0.0f, 0.0f,
          0.5f, -0.5f, -0.5f,  1.0f, 0.0f,
          0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
@@ -1382,297 +1223,101 @@ struct Boid
     glEnableVertexAttribArray(0);
 
     glBindVertexArray(0); // Unbind VAO
-  }
-};
 
-
-
-// int main(int argc, char *argv[])
-// {
-//     glfwInit();
-//     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-//     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
-//     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-//     glfwWindowHint(GLFW_RESIZABLE, GL_FALSE);
-
-//     GLFWwindow* window = glfwCreateWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "2D Animation", nullptr, nullptr);
-//     glfwMakeContextCurrent(window);
-
-//     glewExperimental = GL_TRUE;
-//     glewInit();
-//     glGetError(); // Call it once to catch glewInit() bug, all other errors are now from our application.
-
-//     glfwSetKeyCallback(window, key_callback);
-
-//     // OpenGL configuration
-//     glViewport(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
-//     // glEnable(GL_CULL_FACE);
-//     // glEnable(GL_BLEND);
-//     // glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-
-
-//     // DeltaTime variables
-//     GLfloat deltaTime = 0.0f;
-//     GLfloat lastFrame = 0.0f;
-
-//     init();
-
-//     while (!glfwWindowShouldClose(window))
-//     {
-//         // Calculate delta time
-//         GLfloat currentFrame = glfwGetTime();
-//         deltaTime = currentFrame - lastFrame;
-//         lastFrame = currentFrame;
-//         glfwPollEvents();
-
-
-
-//         // Render
-//         glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-//         glClear(GL_COLOR_BUFFER_BIT);
-
-//         render();
-//         glfwSwapBuffers(window);
-//     }
-
-//     // Delete all resources as loaded using the resource manager
-//     ResourceManager::Clear();
-//     cleanup();
-//     glfwTerminate();
-//     return 0;
-// }
-
-// void key_callback(GLFWwindow* window, int key, int scancode, int action, int mode)
-// {
-//     // When a user presses the escape key, we set the WindowShouldClose property to true, closing the application
-//     if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
-//         glfwSetWindowShouldClose(window, GL_TRUE);
-// }
-
-//-------------------------------------------------------------------------------
-
-
-// Properties
-GLuint screenWidth = 800, screenHeight = 600;
-
-// Function prototypes
-void error_callback(int error, const char* description);
-void key_callback(GLFWwindow* window, int key, int scancode, int action, int mode);
-void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
-void mouse_callback(GLFWwindow* window, double xpos, double ypos);
-void mouse_button_callback(GLFWwindow* window, int button, int action, int mods);
-void Do_Movement();
-
-// Camera
-Camera* camera;
-bool keys[1024];
-GLfloat lastX = 400, lastY = 300;
-bool firstMouse = true;
-
-GLfloat deltaTime = 0.0f;
-GLfloat lastFrame = 0.0f;
-
-// The MAIN function, from here we start our application and run our Game loop
-// int main()
-// {
-//     // Init GLFW
- 
-//   if (!glfwInit()) exit(EXIT_FAILURE);
-//   glfwSetErrorCallback(error_callback);
-//   glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-//   glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
-//   glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
-//   glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-//   glfwWindowHint(GLFW_SAMPLES, 4);
-//   GLFWwindow* window = glfwCreateWindow(window_width, window_height,
-//                                         "Boids", nullptr, nullptr);
-//   CHECK_SUCCESS(window != nullptr);
-
-//   glfwMakeContextCurrent(window);
-  
-//   glewExperimental = GL_TRUE;
-//   CHECK_SUCCESS(glewInit() == GLEW_OK);
-//   glGetError();  // clear GLEW's error for it
-
-//   glfwSetKeyCallback(window, key_callback);
-//   glfwSetCursorPosCallback(window, mouse_callback);
-//   glfwSetMouseButtonCallback(window, mouse_button_callback);
-//   glfwSetScrollCallback(window, scroll_callback);
-//   glfwSwapInterval(1);
-//   const GLubyte* renderer = glGetString(GL_RENDERER);  // get renderer string
-//   const GLubyte* version = glGetString(GL_VERSION);    // version as a string
-//   std::cout << "Renderer: " << renderer << "\n";
-//   std::cout << "OpenGL version supported:" << version << "\n";
-
-//     // Setup and compile our shaders
-//     Shader ourShader = ResourceManager::LoadShader("shaders/mesh2d.vs", "shaders/mesh2d.frag", nullptr, "mesh2d");
-//     ResourceManager::GetShader("mesh2d").SetVector3f("meshColor", glm::vec3(1.0f,1.0f,0.0f));
-//     // Set up our vertex data (and buffer(s)) and attribute pointers
-//     GLfloat vertices[] = {
-//         -0.5f, -0.5f, -0.5f,  0.0f, 0.0f,
-//          0.5f, -0.5f, -0.5f,  1.0f, 0.0f,
-//          0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-//          0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-//         -0.5f,  0.5f, -0.5f,  0.0f, 1.0f,
-//         -0.5f, -0.5f, -0.5f,  0.0f, 0.0f,
-
-//         -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
-//          0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
-//          0.5f,  0.5f,  0.5f,  1.0f, 1.0f,
-//          0.5f,  0.5f,  0.5f,  1.0f, 1.0f,
-//         -0.5f,  0.5f,  0.5f,  0.0f, 1.0f,
-//         -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
-
-//         -0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-//         -0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-//         -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-//         -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-//         -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
-//         -0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-
-//          0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-//          0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-//          0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-//          0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-//          0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
-//          0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-
-//         -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-//          0.5f, -0.5f, -0.5f,  1.0f, 1.0f,
-//          0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
-//          0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
-//         -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
-//         -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-
-//         -0.5f,  0.5f, -0.5f,  0.0f, 1.0f,
-//          0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-//          0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-//          0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-//         -0.5f,  0.5f,  0.5f,  0.0f, 0.0f,
-//         -0.5f,  0.5f, -0.5f,  0.0f, 1.0f
-//     };
-//     glm::vec3 cubePositions[] = {
-//         glm::vec3(0.0f, 0.0f, 0.0f), 
-//         glm::vec3(2.0f, 5.0f, -15.0f), 
-//         glm::vec3(-1.5f, -2.2f, -2.5f),  
-//         glm::vec3(-3.8f, -2.0f, -12.3f),  
-//         glm::vec3(2.4f, -0.4f, -3.5f),  
-//         glm::vec3(-1.7f, 3.0f, -7.5f),  
-//         glm::vec3(1.3f, -2.0f, -2.5f),  
-//         glm::vec3(1.5f, 2.0f, -2.5f), 
-//         glm::vec3(1.5f, 0.2f, -1.5f), 
-//         glm::vec3(-1.3f, 1.0f, -1.5f)  
-//     };
-
-//     GLuint VBO, VAO;
-//     glGenVertexArrays(1, &VAO);
-//     glGenBuffers(1, &VBO);
-//     // Bind our Vertex Array Object first, then bind and set our buffers and pointers.
-//     glBindVertexArray(VAO);
-
-//     glBindBuffer(GL_ARRAY_BUFFER, VBO);
-//     glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-
-//     // Position attribute
-//     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(GLfloat), (GLvoid*)0);
-//     glEnableVertexAttribArray(0);
-
-//     glBindVertexArray(0); // Unbind VAO
-
-//     camera = new Camera(glm::vec3(0.0f, 0.0f, 3.0f));
-//     srand (static_cast <unsigned> (time(0)));
+    camera = new Camera(glm::vec3(0.0f, 0.0f, 3.0f));
+    srand (static_cast <unsigned> (time(0)));
     
-//     ResourceManager::LoadShader("shaders/sprite.vs", "shaders/sprite.frag", nullptr, "sprite");
+    ResourceManager::LoadShader("shaders/sprite.vs", "shaders/sprite.frag", nullptr, "sprite");
 
-//     ResourceManager::GetShader("sprite").Use().SetInteger("image", 0);
+    ResourceManager::GetShader("sprite").Use().SetInteger("image", 0);
 
 
-//     ResourceManager::LoadTexture("textures/awesomeface.png", GL_TRUE, "face");
+    ResourceManager::LoadTexture("textures/awesomeface.png", GL_TRUE, "face");
 
-//     Shader spriteShader;
-//     spriteShader = ResourceManager::GetShader("sprite");
-//     SpriteRenderer* Renderer = new SpriteRenderer(spriteShader);  // Load textures
+    Shader spriteShader;
+    spriteShader = ResourceManager::GetShader("sprite");
+    SpriteRenderer* Renderer = new SpriteRenderer(spriteShader);  // Load textures
 
-//     std::string filename = "obj/bunny.obj";
-//     Mesh* bunny = new Mesh;
-//     bunny->load(filename);
-//     // bunny->setup();
+    std::string filename = "obj/bunny.obj";
+    Mesh* bunny = new Mesh;
+    bunny->load(filename);
+    // bunny->setup();
 
-//     // Game loop
-//     while(!glfwWindowShouldClose(window))
-//     {
-//         // Set frame time
-//         GLfloat currentFrame = glfwGetTime();
-//         deltaTime = currentFrame - lastFrame;
-//         lastFrame = currentFrame;
+    // Game loop
+    while(!glfwWindowShouldClose(window))
+    {
+        // Set frame time
+        GLfloat currentFrame = glfwGetTime();
+        deltaTime = currentFrame - lastFrame;
+        lastFrame = currentFrame;
 
-//         // Check and call events
-//         glfwPollEvents();
-//         Do_Movement();
+        // Check and call events
+        glfwPollEvents();
+        Do_Movement();
 
-//         // Clear the colorbuffer
-//         glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
-//         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        // Clear the colorbuffer
+        glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-//         // Draw our first triangle
-//         ourShader.Use();
+        // Draw our first triangle
+        ourShader.Use();
         
-//         // Create camera transformation
-//         glm::mat4 view;
-//         view = camera->GetViewMatrix();
-//         glm::mat4 projection; 
-//         projection = glm::perspective(camera->Zoom, (float)screenWidth/(float)screenHeight, 0.1f, 1000.0f);
-//         // projection = glm::ortho(0.0f, (float)screenWidth, (float)screenHeight, 0.0f);
+        // Create camera transformation
+        glm::mat4 view;
+        view = camera->GetViewMatrix();
+        glm::mat4 projection; 
+        projection = glm::perspective(camera->Zoom, (float)screenWidth/(float)screenHeight, 0.1f, 1000.0f);
+        // projection = glm::ortho(0.0f, (float)screenWidth, (float)screenHeight, 0.0f);
 
 
-//         // Get the uniform locations
-//         // GLint modelLoc = glGetUniformLocation(ourShader.ID, "model");
-//         // GLint viewLoc = glGetUniformLocation(ourShader.ID, "view");
-//         // GLint projLoc = glGetUniformLocation(ourShader.ID, "projection");
-//         // Pass the matrices to the shader
-//         // glUniformMatrix4fv(viewLoc, 1, GL_FALSE, &view[0][0]);
-//         // glUniformMatrix4fv(projLoc, 1, GL_FALSE, &projection[0][0]);
-//         ResourceManager::GetShader("mesh2d").SetMatrix4("projection", projection);
-//         ResourceManager::GetShader("mesh2d").SetMatrix4("view", view);
-//         ResourceManager::GetShader("sprite").SetMatrix4("projection", projection);
+        // Get the uniform locations
+        // GLint modelLoc = glGetUniformLocation(ourShader.ID, "model");
+        // GLint viewLoc = glGetUniformLocation(ourShader.ID, "view");
+        // GLint projLoc = glGetUniformLocation(ourShader.ID, "projection");
+        // Pass the matrices to the shader
+        // glUniformMatrix4fv(viewLoc, 1, GL_FALSE, &view[0][0]);
+        // glUniformMatrix4fv(projLoc, 1, GL_FALSE, &projection[0][0]);
+        ResourceManager::GetShader("mesh2d").SetMatrix4("projection", projection);
+        ResourceManager::GetShader("mesh2d").SetMatrix4("view", view);
+        ResourceManager::GetShader("sprite").SetMatrix4("projection", projection);
 
-//         ourShader.Use();
-//         glBindVertexArray(VAO);
-//         for(GLuint i = 0; i < 10; i++)
-//         {
-//             // Calculate the model matrix for each object and pass it to shader before drawing
-//             glm::mat4 model;
-//             model = glm::translate(model, cubePositions[i]);
-//             GLfloat angle = 20.0f * i; 
-//             model = glm::rotate(model, angle, glm::vec3(1.0f, 0.3f, 0.5f));
-//             float r0 = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
-//             float r1 = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
-//             float r2 = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
+        ourShader.Use();
+        glBindVertexArray(VAO);
+        for(GLuint i = 0; i < 10; i++)
+        {
+            // Calculate the model matrix for each object and pass it to shader before drawing
+            glm::mat4 model;
+            model = glm::translate(model, cubePositions[i]);
+            GLfloat angle = 20.0f * i; 
+            model = glm::rotate(model, angle, glm::vec3(1.0f, 0.3f, 0.5f));
+            float r0 = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
+            float r1 = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
+            float r2 = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
 
-//             ResourceManager::GetShader("mesh2d").SetVector3f("meshColor", glm::vec3(r0,r1,r2));
-
-
-//             // glUniformMatrix4fv(modelLoc, 1, GL_FALSE, &model[0][0]);
-
-//             ResourceManager::GetShader("mesh2d").SetMatrix4("model", model);
+            ResourceManager::GetShader("mesh2d").SetVector3f("meshColor", glm::vec3(r0,r1,r2));
 
 
-//             glDrawArrays(GL_TRIANGLES, 0, 36);      
-//         }
+            // glUniformMatrix4fv(modelLoc, 1, GL_FALSE, &model[0][0]);
 
-//         glBindVertexArray(0);
+            ResourceManager::GetShader("mesh2d").SetMatrix4("model", model);
+
+
+            glDrawArrays(GL_TRIANGLES, 0, 36);      
+        }
+
+        glBindVertexArray(0);
         
-//         // bunny->draw(ResourceManager::GetShader("mesh2d"), projection, view, glm::vec3(0.2,0.3,1.0));
-//         Renderer->DrawSprite(ResourceManager::GetTexture("face"), glm::vec2(200, 200), glm::vec2(100, 100), 0.45f, glm::vec3(0.0f, 1.0f, 0.0f));
-//                 // Swap the buffers
-//         glfwSwapBuffers(window);
-//     }
-//     // Properly de-allocate all resources once they've outlived their purpose
-//     glDeleteVertexArrays(1, &VAO);
-//     glDeleteBuffers(1, &VBO);
-//     glfwTerminate();
-//     return 0;
-// }
+        // bunny->draw(ResourceManager::GetShader("mesh2d"), projection, view, glm::vec3(0.2,0.3,1.0));
+        Renderer->DrawSprite(ResourceManager::GetTexture("face"), glm::vec2(200, 200), glm::vec2(100, 100), 0.45f, glm::vec3(0.0f, 1.0f, 0.0f));
+                // Swap the buffers
+        glfwSwapBuffers(window);
+    }
+    // Properly de-allocate all resources once they've outlived their purpose
+    glDeleteVertexArrays(1, &VAO);
+    glDeleteBuffers(1, &VBO);
+    glfwTerminate();
+    return 0;
+}
 
 // Moves/alters the camera positions based on user input
 void Do_Movement()
@@ -1749,204 +1394,4 @@ void error_callback(int error, const char* description) {
   std::cerr << "GLFW Error: " << description << "\n";
 }
 
-
-
-
-int main(int argc, char* argv[]) {
-  std::string file;
-  if(argc > 1)
-  {
-     file = std::string(argv[1]);
-     std::cout << "file = " << file << "\n";
-  }
-
-  // Set up OpenGL context
-  if (!glfwInit()) 
-    exit(EXIT_FAILURE);
-  
-  glfwSetErrorCallback(error_callback);
-  glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-  glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
-  glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
-  glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-  GLFWwindow* window = glfwCreateWindow(window_width, window_height,
-                                        &window_title[0], nullptr, nullptr);
-  CHECK_SUCCESS(window != nullptr);
-  glfwMakeContextCurrent(window);
-  glewExperimental = GL_TRUE;
-  CHECK_SUCCESS(glewInit() == GLEW_OK);
-  glGetError();  // clear GLEW's error for it
-  glfwSetKeyCallback(window, key_callback);
-  glfwSwapInterval(1);
-  //-------------------------------------------------------------------------
-  const GLubyte* renderer = glGetString(GL_RENDERER);  // get renderer string
-  const GLubyte* version = glGetString(GL_VERSION);    // version as a string
-  const GLubyte* glsl_version =
-      glGetString(GL_SHADING_LANGUAGE_VERSION);  // version as a
-                                                 // string
-  std::cout << "Renderer: " << renderer << "\n";
-  std::cout << "OpenGL version supported:" << version << "\n";
-  std::cout << "GLSL version supported:" << glsl_version << "\n";
-  //-------------------------------------------------------------------------
-  
-
-  // Load geometry to render
-  std::vector<glm::vec3> obj_vertices;
-  std::vector<glm::uvec3> obj_faces; 
-  LoadObj(file, obj_vertices, obj_faces);
-  std::cout << "Found " << obj_vertices.size() << " vertices and "
-            << obj_faces.size() << " faces.\n";
-
-  // Create Vertex Array Object
-  CHECK_GL_ERROR(glGenVertexArrays(1, &vao));
-  CHECK_GL_ERROR(glBindVertexArray(vao));
-
-  // Create Vertex Buffer Objects
-  CHECK_GL_ERROR(glGenBuffers(2, buffer_objects));
-
-  // Vertex positions
-  CHECK_GL_ERROR(glBindBuffer(GL_ARRAY_BUFFER, buffer_objects[kVertexBuffer]));
-  // NOTE: We do not send anything right now, we just describe it to OpenGL.
-  CHECK_GL_ERROR(glBufferData(GL_ARRAY_BUFFER,
-                              sizeof(float) * obj_vertices.size() * 3, // total size of the position buffer
-			      nullptr, // don't provide data yet, we will pass it in during the rendering loop
-                              GL_STATIC_DRAW));
-  CHECK_GL_ERROR(glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0)); // Assign position buffer to vertex attribute 0
-  CHECK_GL_ERROR(glEnableVertexAttribArray(0)); 
-
-  // Triangle indices
-  CHECK_GL_ERROR(
-      glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, buffer_objects[kIndexBuffer]));
-  CHECK_GL_ERROR(glBufferData(GL_ELEMENT_ARRAY_BUFFER,
-                              sizeof(uint32_t) * obj_faces.size() * 3, // total size of the triangle index buffer
-                              &obj_faces[0], // pointer to the data to pass to the GPU
-			      GL_STATIC_DRAW));
-
-
-  // Create shader program
-  GLuint program_id = 0;
-  CHECK_GL_ERROR(program_id = glCreateProgram());
-    
-  // Compile shaders and attach to shader program
-  // One vertex shader
-  GLuint vertex_shader_id = 0;
-  const char* vertex_source_pointer = vertex_shader;
-  CHECK_GL_ERROR(vertex_shader_id = glCreateShader(GL_VERTEX_SHADER));
-  CHECK_GL_ERROR(
-      glShaderSource(vertex_shader_id, 1, &vertex_source_pointer, nullptr));
-  glCompileShader(vertex_shader_id);
-  CHECK_GL_SHADER_ERROR(vertex_shader_id);
-
-  // one geometry shader
-  GLuint geometry_shader_id = 0;
-  const char* geometry_source_pointer = geometry_shader;
-  CHECK_GL_ERROR(geometry_shader_id = glCreateShader(GL_GEOMETRY_SHADER));
-  CHECK_GL_ERROR(
-      glShaderSource(geometry_shader_id, 1, &geometry_source_pointer, nullptr));
-  glCompileShader(geometry_shader_id);
-  CHECK_GL_SHADER_ERROR(geometry_shader_id);
-
-  // one fragment shader
-  GLuint fragment_shader_id = 0;
-  const char* fragment_source_pointer = fragment_shader;
-  CHECK_GL_ERROR(fragment_shader_id = glCreateShader(GL_FRAGMENT_SHADER));
-  CHECK_GL_ERROR(
-      glShaderSource(fragment_shader_id, 1, &fragment_source_pointer, nullptr));
-  glCompileShader(fragment_shader_id);
-  CHECK_GL_SHADER_ERROR(fragment_shader_id);
-
-  CHECK_GL_ERROR(glAttachShader(program_id, vertex_shader_id));
-  CHECK_GL_ERROR(glAttachShader(program_id, fragment_shader_id));
-  CHECK_GL_ERROR(glAttachShader(program_id, geometry_shader_id));
-
-  // Link shader program
-  CHECK_GL_ERROR(glBindAttribLocation(program_id, 0, "vertex_position"));
-  CHECK_GL_ERROR(glBindFragDataLocation(program_id, 0, "fragment_color"));
-  glLinkProgram(program_id);
-  CHECK_GL_PROGRAM_ERROR(program_id);
-  GLint view_projection_matrix_location = 0;
-  CHECK_GL_ERROR(view_projection_matrix_location =
-                     glGetUniformLocation(program_id, "view_projection"));
-  GLint light_position_location = 0;
-  CHECK_GL_ERROR(light_position_location =
-                     glGetUniformLocation(program_id, "light_position"));
-
-
-  camera = new Camera;
-
-
-  // Set up camera and light (ignore for now)
-  glm::vec3 min_bounds = glm::vec3(std::numeric_limits<float>::max());
-  glm::vec3 max_bounds = glm::vec3(-std::numeric_limits<float>::max());
-  for (int i = 0; i < obj_vertices.size(); ++i) {
-    min_bounds = glm::min(obj_vertices[i], min_bounds);
-    max_bounds = glm::max(obj_vertices[i], max_bounds);
-  }
-  std::cout << "min_bounds = " << glm::to_string(min_bounds) << "\n";
-  std::cout << "max_bounds = " << glm::to_string(max_bounds) << "\n";
-  std::cout << "center = " << glm::to_string(0.5f * (min_bounds + max_bounds))
-            << "\n";
-
-  glm::vec3 light_position = glm::vec3(10.0f, 0.0f, 10.0f);
-  glm::vec3 eye = glm::vec3(0.0f, 0.1f, 0.4f);
-  glm::vec3 look = glm::vec3(0.0f, 0.1f, 0.0f);
-  glm::vec3 up = glm::vec3(0.0f, 0.1f, 0.4f);
-  glm::mat4 view_matrix = glm::lookAt(eye, look, up);
-
-  float aspect = static_cast<float>(window_width) / window_height;
-  glm::mat4 projection_matrix = glm::perspective(glm::radians(45.0f), aspect, 0.0001f, 1000.0f);
-  // glm::mat4 projection_matrix = glm::ortho(0.0f, 800.0f, 600.0f, 0.0f, -1.0f, 1.0f);
-  glm::mat4 view_projection_matrix = projection_matrix * view_matrix;
-
-  while (!glfwWindowShouldClose(window)) 
-  {
-    // Clear screen
-    glfwGetFramebufferSize(window, &window_width, &window_height);
-    glViewport(0, 0, window_width, window_height);
-    glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
-    glEnable(GL_DEPTH_TEST);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    glDepthFunc(GL_LESS);
-
-    // Tell OpenGL what shader program to use
-    CHECK_GL_ERROR(glUseProgram(program_id));
-
-    // Tell OpenGL what to render
-    CHECK_GL_ERROR(
-        glBindBuffer(GL_ARRAY_BUFFER, buffer_objects[kVertexBuffer]));
-    CHECK_GL_ERROR(glBufferData(GL_ARRAY_BUFFER,
-                                sizeof(float) * obj_vertices.size() * 3, // same size as before
-                                &obj_vertices[0], // this time we do pass the vertex position data
-				GL_STATIC_DRAW));
-
-    // Pass in global variables
-    CHECK_GL_ERROR(glUniformMatrix4fv(view_projection_matrix_location, 1,
-                                      GL_FALSE, &view_projection_matrix[0][0]));
-    CHECK_GL_ERROR(
-        glUniform3fv(light_position_location, 1, &light_position[0]));
-    CHECK_GL_ERROR(glBindVertexArray(vao));
-
-    // Render!
-    CHECK_GL_ERROR(
-        glDrawElements(GL_TRIANGLES, obj_faces.size() * 3, GL_UNSIGNED_INT, 0));
-
-
-    glfwPollEvents();
-    glfwSwapBuffers(window);
-  }
-
-  glfwDestroyWindow(window);
-  glfwTerminate();
-  exit(EXIT_SUCCESS);
-}
-
-// void ErrorCallback(int error, const char* description) {
-//   std::cerr << "GLFW Error: " << description << "\n";
-// }
-
-// void KeyCallback(GLFWwindow* window, int key, int scancode, int action,
-//                  int mods) {
-//   if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
-//     glfwSetWindowShouldClose(window, GL_TRUE);
-// }
 
