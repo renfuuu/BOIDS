@@ -901,18 +901,9 @@ Texture2D ResourceManager::loadTextureFromFile(const GLchar *file, GLboolean alp
     return texture;
 }
 
-struct Flock
-{
-  std::vector<Boid*> boids;
 
-  Flock()
-  {}
+enum SimulationState { RUN, PAUSE };
 
-  void addBoid(Boid* b)
-  {
-    boids.push_back(b);
-  }
-};
 
 struct Boid
 {
@@ -930,11 +921,15 @@ struct Boid
   Boid(glm::vec3 pos)
   {
     mAcceleration = glm::vec3(0.0f);
-    float angle = static_cast <float> (rand()) / (static_cast <float> (RAND_MAX/X));
-    location = pos;
+    mLocation = pos;
     r = 2.0;
-    maxspeed = 2;
+    maxspeed = 2.0f;
     maxforce = 0.03;
+
+    float a = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
+    float b = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
+    float c = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
+    mColor = glm::vec3(a,b,c);
   }
 
   void update()
@@ -946,7 +941,7 @@ struct Boid
       mVelocity = mVelocity*maxspeed;
     }
     mLocation += mVelocity;
-    mAcceleration  = mAcceleration*0;
+    mAcceleration  = 0.0f*mAcceleration;
   }
 
   void applyForce(glm::vec3 force)
@@ -960,7 +955,7 @@ struct Boid
     glm::normalize(desired);
     desired = desired*maxspeed;
 
-    glm::vec3 steer = desired - velocity;
+    glm::vec3 steer = desired - mVelocity;
     if(glm::length(steer) > maxforce)
     {
       glm::normalize(steer);
@@ -1012,7 +1007,7 @@ struct Boid
     float neighbordist = 50;
     glm::vec3 sum(0.0f,0.0f,0.0f);
     int count = 0;
-    for (Boid other : boids) {
+    for (Boid* other : boids) {
       float d = glm::length(mLocation - other->mLocation);
       if ((d > 0) && (d < neighbordist)) 
       {
@@ -1038,19 +1033,19 @@ struct Boid
       return steer;
     } 
     else {
-      return new PVector(0, 0);
+      return glm::vec3(0.0f);
     }
   }
 
   glm::vec3 cohesion(std::vector<Boid*> boids)
   {
     float neighbordist = 50;
-    glm::vec3 sum(0, 0);   // Start with empty vector to accumulate all locations
+    glm::vec3 sum(0.0f);   // Start with empty vector to accumulate all locations
     int count = 0;
-    for (Boid other : boids) {
-      float d = glm::length(mLocation, other->mLocation);
+    for (Boid* other : boids) {
+      float d = glm::length(mLocation - other->mLocation);
       if ((d > 0) && (d < neighbordist)) {
-        sum += other->mLocation); // Add location
+        sum += other->mLocation; // Add location
         count++;
       }
     }
@@ -1059,8 +1054,13 @@ struct Boid
       return seek(sum);  // Steer towards the location
     } 
     else {
-      return new PVector(0, 0);
+      return glm::vec3(0.0f);
     }
+  }
+
+  glm::vec3 color()
+  {
+    return mColor;
   }
 
   void run(std::vector<Boid*> boids)
@@ -1077,21 +1077,57 @@ struct Boid
 
     //weights here are artibrary, maybe add evolutionary algorithm for points
 
-    sep = 1.0*sep;
-    ali = 1.0*ali;
-    coh = 1.0*coh;
+    sep = 1.0f*sep;
+    ali = 1.0f*ali;
+    coh = 1.0f*coh;
 
     applyForce(sep);
     applyForce(ali);
     applyForce(coh);
   }
 
-  glm::mat4 Model()
+  glm::mat4 model()
   {
     glm::mat4 model(1.0f);
     model = glm::translate(model, mLocation);
+    return model;
   }
 };
+
+struct Flock
+{
+  std::vector<Boid*> boids;
+
+  Flock()
+  {}
+
+  ~Flock()
+  {
+    for (std::vector<Boid*>::iterator i = boids.begin(); i != boids.end(); ++i)
+    {
+      delete (*i);
+    }
+  }
+
+  void addBoid(Boid* b)
+  {
+    boids.push_back(b);
+  }
+
+  void addRandBoid()
+  {
+    float LO = -5.0f;
+    float HI = 5.0f;
+    float r1 = LO + static_cast <float> (rand()) /( static_cast <float> (RAND_MAX/(HI-LO)));
+    float r2 = LO + static_cast <float> (rand()) /( static_cast <float> (RAND_MAX/(HI-LO)));
+    float r3 = LO + static_cast <float> (rand()) /( static_cast <float> (RAND_MAX/(HI-LO)));
+
+    boids.push_back(new Boid(glm::vec3(r1,r2,-12.0)));
+  }
+
+};
+
+
 
 // Properties
 GLuint screenWidth = 800, screenHeight = 600;
@@ -1122,6 +1158,8 @@ int main()
 {
     // Init GLFW
  
+  int sim_s
+
   if (!glfwInit()) exit(EXIT_FAILURE);
   glfwSetErrorCallback(error_callback);
   glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
@@ -1234,16 +1272,14 @@ int main()
 
     ResourceManager::LoadTexture("textures/awesomeface.png", GL_TRUE, "face");
 
-    Shader spriteShader;
-    spriteShader = ResourceManager::GetShader("sprite");
-    SpriteRenderer* Renderer = new SpriteRenderer(spriteShader);  // Load textures
+    Flock* flock = new Flock;
 
-    std::string filename = "obj/bunny.obj";
-    Mesh* bunny = new Mesh;
-    bunny->load(filename);
-    // bunny->setup();
+    for (int i = 0; i < 10; ++i)
+    {
+      flock->addRandBoid();
+    }
 
-    // Game loop
+
     while(!glfwWindowShouldClose(window))
     {
         // Set frame time
@@ -1279,37 +1315,34 @@ int main()
         // glUniformMatrix4fv(projLoc, 1, GL_FALSE, &projection[0][0]);
         ResourceManager::GetShader("mesh2d").SetMatrix4("projection", projection);
         ResourceManager::GetShader("mesh2d").SetMatrix4("view", view);
-        ResourceManager::GetShader("sprite").SetMatrix4("projection", projection);
 
         ourShader.Use();
         glBindVertexArray(VAO);
-        for(GLuint i = 0; i < 10; i++)
+        for (std::vector<Boid*>::iterator i = flock->boids.begin(); i != flock->boids.end(); ++i)
         {
             // Calculate the model matrix for each object and pass it to shader before drawing
-            glm::mat4 model;
-            model = glm::translate(model, cubePositions[i]);
-            GLfloat angle = 20.0f * i; 
-            model = glm::rotate(model, angle, glm::vec3(1.0f, 0.3f, 0.5f));
-            float r0 = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
-            float r1 = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
-            float r2 = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
-
-            ResourceManager::GetShader("mesh2d").SetVector3f("meshColor", glm::vec3(r0,r1,r2));
-
+            // glm::mat4 model;
+            // model = glm::translate(model, cubePositions[i]);
+            // GLfloat angle = 20.0f * i; 
+            // model = glm::rotate(model, angle, glm::vec3(1.0f, 0.3f, 0.5f));
+           
 
             // glUniformMatrix4fv(modelLoc, 1, GL_FALSE, &model[0][0]);
-
-            ResourceManager::GetShader("mesh2d").SetMatrix4("model", model);
+            ResourceManager::GetShader("mesh2d").SetVector3f("meshColor", (*i)->color());
+            ResourceManager::GetShader("mesh2d").SetMatrix4("model", (*i)->model());
 
 
             glDrawArrays(GL_TRIANGLES, 0, 36);      
         }
 
+        for (std::vector<Boid*>::iterator i = flock->boids.begin(); i != flock->boids.end(); ++i)
+        {
+          (*i)->flock(flock->boids);
+          (*i)->update();
+        }
+
         glBindVertexArray(0);
-        
-        // bunny->draw(ResourceManager::GetShader("mesh2d"), projection, view, glm::vec3(0.2,0.3,1.0));
-        Renderer->DrawSprite(ResourceManager::GetTexture("face"), glm::vec2(200, 200), glm::vec2(100, 100), 0.45f, glm::vec3(0.0f, 1.0f, 0.0f));
-                // Swap the buffers
+        // Swap the buffers
         glfwSwapBuffers(window);
     }
     // Properly de-allocate all resources once they've outlived their purpose
@@ -1325,22 +1358,18 @@ void Do_Movement()
     // Camera controls
     if(keys[GLFW_KEY_W])
     {
-      std::cout << "HIT W" << std::endl;
       camera->ProcessKeyboard(FORWARD, deltaTime);
     }
     if(keys[GLFW_KEY_S])
     {
-      std::cout << "HIT S" << std::endl;
       camera->ProcessKeyboard(BACKWARD, deltaTime);
     }
     if(keys[GLFW_KEY_A])
     {
-      std::cout << "HIT A" << std::endl;
       camera->ProcessKeyboard(LEFT, deltaTime);
     }
     if(keys[GLFW_KEY_D])
     {
-      std::cout << "HIT D" << std::endl;
       camera->ProcessKeyboard(RIGHT, deltaTime);
     }
 }
@@ -1393,205 +1422,4 @@ void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
 void error_callback(int error, const char* description) {
   std::cerr << "GLFW Error: " << description << "\n";
 }
-
-
-
-
-int main(int argc, char* argv[]) {
-  std::string file;
-  if(argc > 1)
-  {
-     file = std::string(argv[1]);
-     std::cout << "file = " << file << "\n";
-  }
-
-  // Set up OpenGL context
-  if (!glfwInit()) 
-    exit(EXIT_FAILURE);
-  
-  glfwSetErrorCallback(error_callback);
-  glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-  glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
-  glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
-  glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-  GLFWwindow* window = glfwCreateWindow(window_width, window_height,
-                                        &window_title[0], nullptr, nullptr);
-  CHECK_SUCCESS(window != nullptr);
-  glfwMakeContextCurrent(window);
-  glewExperimental = GL_TRUE;
-  CHECK_SUCCESS(glewInit() == GLEW_OK);
-  glGetError();  // clear GLEW's error for it
-  glfwSetKeyCallback(window, key_callback);
-  glfwSwapInterval(1);
-  //-------------------------------------------------------------------------
-  const GLubyte* renderer = glGetString(GL_RENDERER);  // get renderer string
-  const GLubyte* version = glGetString(GL_VERSION);    // version as a string
-  const GLubyte* glsl_version =
-      glGetString(GL_SHADING_LANGUAGE_VERSION);  // version as a
-                                                 // string
-  std::cout << "Renderer: " << renderer << "\n";
-  std::cout << "OpenGL version supported:" << version << "\n";
-  std::cout << "GLSL version supported:" << glsl_version << "\n";
-  //-------------------------------------------------------------------------
-  
-
-  // Load geometry to render
-  std::vector<glm::vec3> obj_vertices;
-  std::vector<glm::uvec3> obj_faces; 
-  LoadObj(file, obj_vertices, obj_faces);
-  std::cout << "Found " << obj_vertices.size() << " vertices and "
-            << obj_faces.size() << " faces.\n";
-
-  // Create Vertex Array Object
-  CHECK_GL_ERROR(glGenVertexArrays(1, &vao));
-  CHECK_GL_ERROR(glBindVertexArray(vao));
-
-  // Create Vertex Buffer Objects
-  CHECK_GL_ERROR(glGenBuffers(2, buffer_objects));
-
-  // Vertex positions
-  CHECK_GL_ERROR(glBindBuffer(GL_ARRAY_BUFFER, buffer_objects[kVertexBuffer]));
-  // NOTE: We do not send anything right now, we just describe it to OpenGL.
-  CHECK_GL_ERROR(glBufferData(GL_ARRAY_BUFFER,
-                              sizeof(float) * obj_vertices.size() * 3, // total size of the position buffer
-			      nullptr, // don't provide data yet, we will pass it in during the rendering loop
-                              GL_STATIC_DRAW));
-  CHECK_GL_ERROR(glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0)); // Assign position buffer to vertex attribute 0
-  CHECK_GL_ERROR(glEnableVertexAttribArray(0)); 
-
-  // Triangle indices
-  CHECK_GL_ERROR(
-      glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, buffer_objects[kIndexBuffer]));
-  CHECK_GL_ERROR(glBufferData(GL_ELEMENT_ARRAY_BUFFER,
-                              sizeof(uint32_t) * obj_faces.size() * 3, // total size of the triangle index buffer
-                              &obj_faces[0], // pointer to the data to pass to the GPU
-			      GL_STATIC_DRAW));
-
-
-  // Create shader program
-  GLuint program_id = 0;
-  CHECK_GL_ERROR(program_id = glCreateProgram());
-    
-  // Compile shaders and attach to shader program
-  // One vertex shader
-  GLuint vertex_shader_id = 0;
-  const char* vertex_source_pointer = vertex_shader;
-  CHECK_GL_ERROR(vertex_shader_id = glCreateShader(GL_VERTEX_SHADER));
-  CHECK_GL_ERROR(
-      glShaderSource(vertex_shader_id, 1, &vertex_source_pointer, nullptr));
-  glCompileShader(vertex_shader_id);
-  CHECK_GL_SHADER_ERROR(vertex_shader_id);
-
-  // one geometry shader
-  GLuint geometry_shader_id = 0;
-  const char* geometry_source_pointer = geometry_shader;
-  CHECK_GL_ERROR(geometry_shader_id = glCreateShader(GL_GEOMETRY_SHADER));
-  CHECK_GL_ERROR(
-      glShaderSource(geometry_shader_id, 1, &geometry_source_pointer, nullptr));
-  glCompileShader(geometry_shader_id);
-  CHECK_GL_SHADER_ERROR(geometry_shader_id);
-
-  // one fragment shader
-  GLuint fragment_shader_id = 0;
-  const char* fragment_source_pointer = fragment_shader;
-  CHECK_GL_ERROR(fragment_shader_id = glCreateShader(GL_FRAGMENT_SHADER));
-  CHECK_GL_ERROR(
-      glShaderSource(fragment_shader_id, 1, &fragment_source_pointer, nullptr));
-  glCompileShader(fragment_shader_id);
-  CHECK_GL_SHADER_ERROR(fragment_shader_id);
-
-  CHECK_GL_ERROR(glAttachShader(program_id, vertex_shader_id));
-  CHECK_GL_ERROR(glAttachShader(program_id, fragment_shader_id));
-  CHECK_GL_ERROR(glAttachShader(program_id, geometry_shader_id));
-
-  // Link shader program
-  CHECK_GL_ERROR(glBindAttribLocation(program_id, 0, "vertex_position"));
-  CHECK_GL_ERROR(glBindFragDataLocation(program_id, 0, "fragment_color"));
-  glLinkProgram(program_id);
-  CHECK_GL_PROGRAM_ERROR(program_id);
-  GLint view_projection_matrix_location = 0;
-  CHECK_GL_ERROR(view_projection_matrix_location =
-                     glGetUniformLocation(program_id, "view_projection"));
-  GLint light_position_location = 0;
-  CHECK_GL_ERROR(light_position_location =
-                     glGetUniformLocation(program_id, "light_position"));
-
-
-  camera = new Camera;
-
-
-  // Set up camera and light (ignore for now)
-  glm::vec3 min_bounds = glm::vec3(std::numeric_limits<float>::max());
-  glm::vec3 max_bounds = glm::vec3(-std::numeric_limits<float>::max());
-  for (int i = 0; i < obj_vertices.size(); ++i) {
-    min_bounds = glm::min(obj_vertices[i], min_bounds);
-    max_bounds = glm::max(obj_vertices[i], max_bounds);
-  }
-  std::cout << "min_bounds = " << glm::to_string(min_bounds) << "\n";
-  std::cout << "max_bounds = " << glm::to_string(max_bounds) << "\n";
-  std::cout << "center = " << glm::to_string(0.5f * (min_bounds + max_bounds))
-            << "\n";
-
-  glm::vec3 light_position = glm::vec3(10.0f, 0.0f, 10.0f);
-  glm::vec3 eye = glm::vec3(0.0f, 0.1f, 0.4f);
-  glm::vec3 look = glm::vec3(0.0f, 0.1f, 0.0f);
-  glm::vec3 up = glm::vec3(0.0f, 0.1f, 0.4f);
-  glm::mat4 view_matrix = glm::lookAt(eye, look, up);
-
-  float aspect = static_cast<float>(window_width) / window_height;
-  glm::mat4 projection_matrix = glm::perspective(glm::radians(45.0f), aspect, 0.0001f, 1000.0f);
-  // glm::mat4 projection_matrix = glm::ortho(0.0f, 800.0f, 600.0f, 0.0f, -1.0f, 1.0f);
-  glm::mat4 view_projection_matrix = projection_matrix * view_matrix;
-
-  while (!glfwWindowShouldClose(window)) 
-  {
-    // Clear screen
-    glfwGetFramebufferSize(window, &window_width, &window_height);
-    glViewport(0, 0, window_width, window_height);
-    glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
-    glEnable(GL_DEPTH_TEST);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    glDepthFunc(GL_LESS);
-
-    // Tell OpenGL what shader program to use
-    CHECK_GL_ERROR(glUseProgram(program_id));
-
-    // Tell OpenGL what to render
-    CHECK_GL_ERROR(
-        glBindBuffer(GL_ARRAY_BUFFER, buffer_objects[kVertexBuffer]));
-    CHECK_GL_ERROR(glBufferData(GL_ARRAY_BUFFER,
-                                sizeof(float) * obj_vertices.size() * 3, // same size as before
-                                &obj_vertices[0], // this time we do pass the vertex position data
-				GL_STATIC_DRAW));
-
-    // Pass in global variables
-    CHECK_GL_ERROR(glUniformMatrix4fv(view_projection_matrix_location, 1,
-                                      GL_FALSE, &view_projection_matrix[0][0]));
-    CHECK_GL_ERROR(
-        glUniform3fv(light_position_location, 1, &light_position[0]));
-    CHECK_GL_ERROR(glBindVertexArray(vao));
-
-    // Render!
-    CHECK_GL_ERROR(
-        glDrawElements(GL_TRIANGLES, obj_faces.size() * 3, GL_UNSIGNED_INT, 0));
-
-
-    glfwPollEvents();
-    glfwSwapBuffers(window);
-  }
-
-  glfwDestroyWindow(window);
-  glfwTerminate();
-  exit(EXIT_SUCCESS);
-}
-
-// void ErrorCallback(int error, const char* description) {
-//   std::cerr << "GLFW Error: " << description << "\n";
-// }
-
-// void KeyCallback(GLFWwindow* window, int key, int scancode, int action,
-//                  int mods) {
-//   if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
-//     glfwSetWindowShouldClose(window, GL_TRUE);
-// }
 
