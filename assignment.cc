@@ -895,6 +895,14 @@ struct Boid
     }
     mLocation += mVelocity;
     mAcceleration  = 0.0f*mAcceleration;
+
+    //Borders
+    // if (mLocation.x < -20.0f) mLocation.x = 20.0f;
+    // if (mLocation.y < -20.0f) mLocation.y = 20.0f;
+    // if (mLocation.z < -20.0f) mLocation.z = 20.0f;
+    // if (mLocation.x > 20.0f) mLocation.x = -20.0f;
+    // if (mLocation.y > 20.0f) mLocation.y = -20.0f;
+    // if (mLocation.z > 20.0f) mLocation.z = -20.0f;
   }
 
   void applyForce(glm::vec3 force)
@@ -1385,6 +1393,55 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
     {
       steer_state =  SteerState::CHAOS;
       PRINT("CHAOS");
+    }
+    else if(key == GLFW_KEY_UP && action == GLFW_PRESS)
+    {
+      for (std::vector<Boid*>::iterator i = flock->boids.begin(); i != flock->boids.end(); ++i)
+      {
+        (*i)->mWeights[0] = (*i)->mWeights[0] + 0.5f;
+      }
+    }
+    else if(key == GLFW_KEY_DOWN && action == GLFW_PRESS)
+    {
+      for (std::vector<Boid*>::iterator i = flock->boids.begin(); i != flock->boids.end(); ++i)
+      {
+        (*i)->mWeights[0] = (*i)->mWeights[0] - 0.5f;
+      }
+    }
+    else if(key == GLFW_KEY_LEFT && action == GLFW_PRESS)
+    {
+      for (std::vector<Boid*>::iterator i = flock->boids.begin(); i != flock->boids.end(); ++i)
+      {
+        (*i)->mWeights[1] = (*i)->mWeights[1] + 0.5f;
+      }
+    }
+    else if(key == GLFW_KEY_RIGHT && action == GLFW_PRESS)
+    {
+      for (std::vector<Boid*>::iterator i = flock->boids.begin(); i != flock->boids.end(); ++i)
+      {
+        (*i)->mWeights[1] = (*i)->mWeights[1] - 0.5f;
+      }
+    }
+    else if(key == GLFW_KEY_PERIOD && action == GLFW_PRESS)
+    {
+      for (std::vector<Boid*>::iterator i = flock->boids.begin(); i != flock->boids.end(); ++i)
+      {
+        (*i)->mWeights[2] = (*i)->mWeights[2] + 0.5f;
+      }
+    }
+    else if(key == GLFW_KEY_COMMA && action == GLFW_PRESS)
+    {
+      for (std::vector<Boid*>::iterator i = flock->boids.begin(); i != flock->boids.end(); ++i)
+      {
+        (*i)->mWeights[2] = (*i)->mWeights[2] - 0.5f;
+      }
+    }
+    else if(key == GLFW_KEY_SPACE && action == GLFW_PRESS)
+    {
+      for (std::vector<Boid*>::iterator i = flock->boids.begin(); i != flock->boids.end(); ++i)
+      {
+        (*i)->setWeights(glm::vec3(1.0f));
+      }
     }
 
 
