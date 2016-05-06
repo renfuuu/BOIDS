@@ -936,17 +936,15 @@ struct Boid
     mLocation += mVelocity;
     mAcceleration  = 0.0f*mAcceleration;
 
-    //Borders
-    if (mLocation.x < -50.0f) mLocation.x = 50.0f;
-    if (mLocation.y < -50.0f) mLocation.y = 50.0f;
-    if (mLocation.z < -50.0f) mLocation.z = 50.0f;
-    if (mLocation.x > 50.0f) mLocation.x = -50.0f;
-    if (mLocation.y > 50.0f) mLocation.y = -50.0f;
-    if (mLocation.z > 50.0f) mLocation.z = -50.0f;
-
+  
 
     glm::vec3 nNewV = glm::normalize(mVelocity);
-    glm::vec3 rotN = glm::normalize(glm::cross(oldV, nNewV));
+    glm::vec3 rotN = glm::cross(oldV, nNewV);
+
+    if(glm::dot(oldV, nNewV) < 0)
+    {
+      rotN *= -1.0f;
+    }
 
     float theta = glm::acos(glm::dot(oldV, nNewV)/(glm::length(oldV)*glm::length(nNewV)));
     mTangent = glm::rotate(mTangent, theta, rotN);
@@ -1027,11 +1025,7 @@ struct Boid
     }
     if (count > 0) {
       sum *= (1.0f/(float)count);
-      // PRINT("sum " << sum.x << " " << sum.y << " " << sum.z);
-      // First two lines of code below could be condensed with new PVector setMag() method
-      // Not using this method until Processing.js catches up
-      // sum.setMag(maxspeed);
-
+    
       // Implement Reynolds: Steering = Desired - Velocity
       sum = glm::normalize(sum);
       sum = sum*maxspeed;
@@ -1141,7 +1135,15 @@ struct Boid
     glm::vec3 sep = separate(boids);
     glm::vec3 ali = align(boids);
     glm::vec3 coh = cohesion(boids);
-    
+  
+      //Borders
+    if (mLocation.x < -75.0f) applyForce(glm::vec3(5.0f,0.0f, 0.0f));
+    if (mLocation.y < -75.0f) applyForce(glm::vec3(0.0f,5.0f, 0.0f));
+    if (mLocation.z < -75.0f) applyForce(glm::vec3(0.0f,0.0f, 5.0f));
+    if (mLocation.x >  75.0f) applyForce(glm::vec3(-5.0f,0.0f, 0.0f));
+    if (mLocation.y >  75.0f) applyForce(glm::vec3(0.0f,-5.0f, 0.0f));
+    if (mLocation.z >  75.0f) applyForce(glm::vec3(0.0f,0.0f, -5.0f));
+
 
     if(steertype == SteerState::NATURAL)
     {
@@ -1192,7 +1194,7 @@ struct Boid
 
     if(glm::length(mAcceleration) > maxforce)
     {
-      glm::normalize(mAcceleration);
+      mAcceleration = glm::normalize(mAcceleration);
       mAcceleration = mAcceleration*maxforce;
     }
   }
@@ -1402,7 +1404,7 @@ int main()
 
     glBindVertexArray(0); // Unbind VAO
 
-    camera = new Camera(glm::vec3(0.0f, 50.0f, 50.0f));
+    camera = new Camera(glm::vec3(0.0f, 75.0f, 75.0f));
     camera->Front = -1.0f*camera->Position;
 
     srand (static_cast <unsigned> (time(0)));
@@ -1508,17 +1510,17 @@ int main()
 
         }
 
-        for (std::vector<Boid*>::iterator i = flock->boids.begin(); i != flock->boids.end(); ++i)
-        {
-          glBindVertexArray(array_objects[kNormalFrameVao]);
-          CHECK_GL_ERROR(axisShader.Use());
-          ResourceManager::GetShader("axis").SetVector3f("meshColor", glm::vec3(1.0f, 0.0f, 0.0f));
-          ResourceManager::GetShader("axis").SetMatrix4("model", (*i)->model());
-          ResourceManager::GetShader("axis").SetVector4f("light_position", light_position);
-          glDrawArrays(GL_LINES, 0, sizeof(normal_vert));
-          glBindVertexArray(0);
+        // for (std::vector<Boid*>::iterator i = flock->boids.begin(); i != flock->boids.end(); ++i)
+        // {
+        //   glBindVertexArray(array_objects[kNormalFrameVao]);
+        //   CHECK_GL_ERROR(axisShader.Use());
+        //   ResourceManager::GetShader("axis").SetVector3f("meshColor", glm::vec3(1.0f, 0.0f, 0.0f));
+        //   ResourceManager::GetShader("axis").SetMatrix4("model", (*i)->model());
+        //   ResourceManager::GetShader("axis").SetVector4f("light_position", light_position);
+        //   glDrawArrays(GL_LINES, 0, sizeof(normal_vert));
+        //   glBindVertexArray(0);
 
-        }
+        // }
 
         int cc = 0;
         for (std::vector<Boid*>::iterator i = flock->boids.begin(); i != flock->boids.end(); ++i)
@@ -1762,8 +1764,7 @@ void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
       // don't forget to normalise the vector at some point
       ray_wor = glm::normalize (ray_wor);
 
-      flock->addBoid(new Boid((camera->Position + ray_wor) + camera->Front*10.0f));
-      PRINT("BOID ADDED");
+      flock->addRandBoid();
   }
 }
 
