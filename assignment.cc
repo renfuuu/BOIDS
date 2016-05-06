@@ -51,14 +51,13 @@ enum {
   kAlign,
   kSeparate,
   kCohesion,
+  kNormalFrameVao,
+  kBinormalFrameVao,
   kNumVaos
 };
 
-
-
-
 GLuint array_objects[kNumVaos];
-GLuint buffer_objects[kNumVbos];  // These will store VBO descriptors.
+GLuint buffer_objects[kNumVaos][kNumVbos];  // These will store VBO descriptors.
 
 const char* vertex_shader =
     "#version 330 core\n"
@@ -1316,6 +1315,11 @@ int main()
     // Setup and compile our shaders
     Shader ourShader = ResourceManager::LoadShader("shaders/mesh2d.vs", "shaders/mesh2d.frag", "shaders/mesh2d.geo", "mesh2d");
     ResourceManager::GetShader("mesh2d").SetVector3f("meshColor", glm::vec3(1.0f,1.0f,0.0f));
+    
+    Shader axisShader = ResourceManager::LoadShader("shaders/mesh2d.vs", "shaders/axis.frag", "shaders/axis.geo", "axis");
+    ResourceManager::GetShader("axis").SetVector3f("meshColor", glm::vec3(1.0f, 0.0f, 0.0f));
+
+
     // Set up our vertex data (and buffer(s)) and attribute pointers
     GLfloat vertices[] = {
          0.0f,  6.0f,  0.0f,
@@ -1343,32 +1347,58 @@ int main()
         -1.0f, -1.0f,  1.0f
     };
 
-
-    glm::vec3 cubePositions[] = {
-        glm::vec3(0.0f, 0.0f, 0.0f), 
-        glm::vec3(2.0f, 5.0f, -15.0f), 
-        glm::vec3(-1.5f, -2.2f, -2.5f),  
-        glm::vec3(-3.8f, -2.0f, -12.3f),  
-        glm::vec3(2.4f, -0.4f, -3.5f),  
-        glm::vec3(-1.7f, 3.0f, -7.5f),  
-        glm::vec3(1.3f, -2.0f, -2.5f),  
-        glm::vec3(1.5f, 2.0f, -2.5f), 
-        glm::vec3(1.5f, 0.2f, -1.5f), 
-        glm::vec3(-1.3f, 1.0f, -1.5f)  
+    GLfloat binormal_vert[] = {
+      0.0f, 0.0f, 0.0f,
+      0.0f, 0.0f, 0.1f
     };
 
-    GLuint VBO, VAO;
-    glGenVertexArrays(1, &VAO);
-    glGenBuffers(1, &VBO);
-    // Bind our Vertex Array Object first, then bind and set our buffers and pointers.
-    glBindVertexArray(VAO);
+    GLfloat normal_vert[] = {
+      0.0f, 0.0f, 0.0f,
+      0.0f, 0.1f, 0.0f
+    };
 
-    glBindBuffer(GL_ARRAY_BUFFER, VBO);
+
+
+    // GLuint VBO, VAO;
+    glGenVertexArrays(kNumVaos, array_objects);
+
+    glBindVertexArray(array_objects[kBoid]);
+
+    glGenBuffers(kNumVbos, &buffer_objects[kBoid][0]);
+    // Bind our Vertex Array Object first, then bind and set our buffers and pointers.
+    // glBindVertexArray(VAO);
+
+    glBindBuffer(GL_ARRAY_BUFFER, buffer_objects[kBoid][kVertexBuffer]);
     glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+
+    // Position attribute
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, (GLvoid*)0);
+    glEnableVertexAttribArray(0);
+
+
+    glBindVertexArray(array_objects[kNormalFrameVao]);
+    glGenBuffers(kNumVbos, &buffer_objects[kNormalFrameVao][0]);
+    // // Bind our Vertex Array Object first, then bind and set our buffers and pointers.
+
+    glBindBuffer(GL_ARRAY_BUFFER, buffer_objects[kNormalFrameVao][kVertexBuffer]);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(normal_vert), normal_vert, GL_STATIC_DRAW);
+
+    // // Position attribute
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, (GLvoid*)0);
+    glEnableVertexAttribArray(0);
+
+
+    glBindVertexArray(array_objects[kBinormalFrameVao]);
+    glGenBuffers(kNumVbos, &buffer_objects[kBinormalFrameVao][0]);
+    // // Bind our Vertex Array Object first, then bind and set our buffers and pointers.
+
+    glBindBuffer(GL_ARRAY_BUFFER, buffer_objects[kBinormalFrameVao][kVertexBuffer]);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(binormal_vert), binormal_vert, GL_STATIC_DRAW);
 
     // Position attribute
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), (GLvoid*)0);
     glEnableVertexAttribArray(0);
+
 
     glBindVertexArray(0); // Unbind VAO
 
@@ -1425,7 +1455,7 @@ int main()
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         // Draw our first triangle
-        ourShader.Use();
+        // ourShader.Use();
         
         // Create camera transformation
         glm::vec4 light_position = glm::vec4(camera->Position, 1.0f);
@@ -1447,30 +1477,54 @@ int main()
         ResourceManager::GetShader("mesh2d").SetMatrix4("view", view);
 
 
-        ourShader.Use();
-        glBindVertexArray(VAO);
+        ResourceManager::GetShader("axis").SetMatrix4("projection", projection);
+        ResourceManager::GetShader("axis").SetMatrix4("view", view);
+    // enum { 
+    //   kVertexBuffer, // Buffer of vertex positions
+    //   kIndexBuffer,  // Buffer of triangle indices
+    //   kNumVbos };
+
+    // GLuint vao = 0;                   // This will store the VAO descriptor.
+    // enum {
+    //   kBoid,
+    //   kVelocity,
+    //   kAcceleration,
+    //   kAlign,
+    //   kSeparate,
+    //   kCohesion,
+    //   kNormalFrameVao,
+    //   kBinormalFrameVao,
+    //   kNumVaos
+    // };
         for (std::vector<Boid*>::iterator i = flock->boids.begin(); i != flock->boids.end(); ++i)
         {
-            // Calculate the model matrix for each object and pass it to shader before drawing
-            // glm::mat4 model;
-            // model = glm::translate(model, cubePositions[i]);
-            // GLfloat angle = 20.0f * i; 
-            // model = glm::rotate(model, angle, glm::vec3(1.0f, 0.3f, 0.5f));
-           
+          glBindVertexArray(array_objects[kBoid]);
+          ourShader.Use();
+          ResourceManager::GetShader("mesh2d").SetVector3f("meshColor", (*i)->color());
+          ResourceManager::GetShader("mesh2d").SetMatrix4("model", (*i)->model());
+          ResourceManager::GetShader("mesh2d").SetVector4f("light_position", light_position);
+          glDrawArrays(GL_TRIANGLES, 0, sizeof(vertices));   
+          glBindVertexArray(0);
 
-            // glUniformMatrix4fv(modelLoc, 1, GL_FALSE, &model[0][0]);
-            ResourceManager::GetShader("mesh2d").SetVector3f("meshColor", (*i)->color());
-            ResourceManager::GetShader("mesh2d").SetMatrix4("model", (*i)->model());
-            ResourceManager::GetShader("mesh2d").SetVector4f("light_position", light_position);
+        }
 
-            glDrawArrays(GL_TRIANGLES, 0, 36);      
+        for (std::vector<Boid*>::iterator i = flock->boids.begin(); i != flock->boids.end(); ++i)
+        {
+          glBindVertexArray(array_objects[kNormalFrameVao]);
+          CHECK_GL_ERROR(axisShader.Use());
+          ResourceManager::GetShader("axis").SetVector3f("meshColor", glm::vec3(1.0f, 0.0f, 0.0f));
+          ResourceManager::GetShader("axis").SetMatrix4("model", (*i)->model());
+          ResourceManager::GetShader("axis").SetVector4f("light_position", light_position);
+          glDrawArrays(GL_LINES, 0, sizeof(normal_vert));
+          glBindVertexArray(0);
+
         }
 
         int cc = 0;
         for (std::vector<Boid*>::iterator i = flock->boids.begin(); i != flock->boids.end(); ++i)
         { 
 
-          PRINT("Boid " << cc << " pos: " <<(*i)->mLocation.x << " " << (*i)->mLocation.y << " " << (*i)->mLocation.z);
+          // PRINT("Boid " << cc << " pos: " <<(*i)->mLocation.x << " " << (*i)->mLocation.y << " " << (*i)->mLocation.z);
       
           if(sim_state != SimulationState::PAUSE)
           {
@@ -1485,8 +1539,8 @@ int main()
         glfwSwapBuffers(window);
     }
     // Properly de-allocate all resources once they've outlived their purpose
-    glDeleteVertexArrays(1, &VAO);
-    glDeleteBuffers(1, &VBO);
+    // glDeleteVertexArrays(1, &VAO);
+    // glDeleteBuffers(1, &VBO);
     glfwTerminate();
     return 0;
 }
