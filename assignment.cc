@@ -31,7 +31,7 @@ int current_button = -1;
 
 
 
-int screenWidth = 800, screenHeight = 600;
+int screenWidth = 1600, screenHeight = 1200;
 const std::string window_title = "OBJ Loader";
 
 #define PRINT(x) std::cout<<x<<std::endl;
@@ -1137,12 +1137,12 @@ struct Boid
     glm::vec3 coh = cohesion(boids);
   
       //Borders
-    if (mLocation.x < -75.0f) applyForce(glm::vec3(5.0f,0.0f, 0.0f));
-    if (mLocation.y < -75.0f) applyForce(glm::vec3(0.0f,5.0f, 0.0f));
-    if (mLocation.z < -75.0f) applyForce(glm::vec3(0.0f,0.0f, 5.0f));
-    if (mLocation.x >  75.0f) applyForce(glm::vec3(-5.0f,0.0f, 0.0f));
-    if (mLocation.y >  75.0f) applyForce(glm::vec3(0.0f,-5.0f, 0.0f));
-    if (mLocation.z >  75.0f) applyForce(glm::vec3(0.0f,0.0f, -5.0f));
+    if (mLocation.x < -200.0f) applyForce(glm::vec3(5.0f,0.0f, 0.0f));
+    if (mLocation.y < -200.0f) applyForce(glm::vec3(0.0f,5.0f, 0.0f));
+    if (mLocation.z < -200.0f) applyForce(glm::vec3(0.0f,0.0f, 5.0f));
+    if (mLocation.x >  200.0f) applyForce(glm::vec3(-5.0f,0.0f, 0.0f));
+    if (mLocation.y >  200.0f) applyForce(glm::vec3(0.0f,-5.0f, 0.0f));
+    if (mLocation.z >  200.0f) applyForce(glm::vec3(0.0f,0.0f, -5.0f));
 
 
     if(steertype == SteerState::NATURAL)
@@ -1235,8 +1235,8 @@ struct Flock
 
   void addRandBoid()
   {
-    float LO = -5.0f;
-    float HI = 5.0f;
+    float LO = -100.0f;
+    float HI = 100.0f;
     float r1 = LO + static_cast <float> (rand()) /( static_cast <float> (RAND_MAX/(HI-LO)));
     float r2 = LO + static_cast <float> (rand()) /( static_cast <float> (RAND_MAX/(HI-LO)));
     float r3 = LO + static_cast <float> (rand()) /( static_cast <float> (RAND_MAX/(HI-LO)));
@@ -1409,7 +1409,7 @@ int main()
 
     srand (static_cast <unsigned> (time(0)));
 
-    for (int i = 0; i < 10; ++i)
+    for (int i = 0; i < 100; ++i)
     {
       flock->addRandBoid();
     }
@@ -1453,7 +1453,7 @@ int main()
         Do_Movement();
 
         // Clear the colorbuffer
-        glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
+        glClearColor(0.5f, 0.4f, 0.8f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         // Draw our first triangle
