@@ -1077,10 +1077,6 @@ int main()
     // Setup and compile our shaders
     Shader ourShader = ResourceManager::LoadShader("shaders/mesh2d.vs", "shaders/mesh2d.frag", "shaders/mesh2d.geo", "mesh2d");
     ResourceManager::GetShader("mesh2d").SetVector3f("meshColor", glm::vec3(1.0f,1.0f,0.0f));
-    
-    Shader axisShader = ResourceManager::LoadShader("shaders/mesh2d.vs", "shaders/axis.frag", "shaders/axis.geo", "axis");
-    ResourceManager::GetShader("axis").SetVector3f("meshColor", glm::vec3(1.0f, 0.0f, 0.0f));
-
 
     // Set up our vertex data (and buffer(s)) and attribute pointers
     GLfloat vertices[] = {
@@ -1197,10 +1193,6 @@ int main()
         ResourceManager::GetShader("mesh2d").SetMatrix4("projection", projection);
         ResourceManager::GetShader("mesh2d").SetMatrix4("view", view);
 
-
-        ResourceManager::GetShader("axis").SetMatrix4("projection", projection);
-        ResourceManager::GetShader("axis").SetMatrix4("view", view);
-
         for (std::vector<Boid*>::iterator i = flock->boids.begin(); i != flock->boids.end(); ++i)
         {
           glBindVertexArray(array_objects[kBoid]);
@@ -1217,7 +1209,6 @@ int main()
         for (std::vector<Boid*>::iterator i = flock->boids.begin(); i != flock->boids.end(); ++i)
         { 
 
-          // PRINT("Boid " << cc << " pos: " <<(*i)->mLocation.x << " " << (*i)->mLocation.y << " " << (*i)->mLocation.z);
       
           if(sim_state != SimulationState::PAUSE)
           {
