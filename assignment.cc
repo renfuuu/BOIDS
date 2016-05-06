@@ -44,7 +44,6 @@ enum {
 	kNumVbos };
 
 GLuint vao = 0;                   // This will store the VAO descriptor.
-
 enum {
   kBoid,
   kVelocity,
@@ -647,7 +646,7 @@ class Camera
             this->Zoom = 45.0f;
     }
 
-  // private:
+  private:
     // Calculates the front vector from the Camera's (updated) Eular Angles
     void updateCameraVectors()
     {
@@ -843,7 +842,7 @@ bool firstMouse = true;
 GLfloat deltaTime = 0.0f;
 GLfloat lastFrame = 0.0f;
 
-float boundaryRadius = 75.0f;
+float boundaryRadius = 100.0f;
 
 // The MAIN function, from here we start our application and run our Game loop
 
@@ -880,8 +879,6 @@ struct Boid
   glm::vec3 mTangent;
   glm::vec3 mNormal;
 
-  float mSize;
-
 
   Boid(glm::vec3 pos)
   {
@@ -903,7 +900,6 @@ struct Boid
 
     mTangent = glm::normalize(mVelocity);
     mNormal = generateNormal();
-    mSize = 1.0f;
   }
 
   Boid(glm::vec3 pos, glm::vec3 direction)
@@ -924,7 +920,6 @@ struct Boid
     
     mTangent = glm::normalize(mVelocity);
     mNormal = generateNormal();
-    mSize = 1.0f;
 
   }
 
@@ -942,22 +937,18 @@ struct Boid
     mAcceleration  = 0.0f*mAcceleration;
 
     //Borders
-    // if (mLocation.x < -50.0f) mLocation.x = 50.0f;
-    // if (mLocation.y < -50.0f) mLocation.y = 50.0f;
-    // if (mLocation.z < -50.0f) mLocation.z = 50.0f;
-    // if (mLocation.x > 50.0f) mLocation.x = -50.0f;
-    // if (mLocation.y > 50.0f) mLocation.y = -50.0f;
-    // if (mLocation.z > 50.0f) mLocation.z = -50.0f;
+    if (mLocation.x < -50.0f) mLocation.x = 50.0f;
+    if (mLocation.y < -50.0f) mLocation.y = 50.0f;
+    if (mLocation.z < -50.0f) mLocation.z = 50.0f;
+    if (mLocation.x > 50.0f) mLocation.x = -50.0f;
+    if (mLocation.y > 50.0f) mLocation.y = -50.0f;
+    if (mLocation.z > 50.0f) mLocation.z = -50.0f;
 
 
     glm::vec3 nNewV = glm::normalize(mVelocity);
-    glm::vec3 rotN = glm::cross(oldV, nNewV);
+    glm::vec3 rotN = glm::normalize(glm::cross(oldV, nNewV));
 
     float theta = glm::acos(glm::dot(oldV, nNewV)/(glm::length(oldV)*glm::length(nNewV)));
-    if(glm::dot(oldV, nNewV) < 0)
-    {
-      rotN *= -1.0f;
-    }
     mTangent = glm::rotate(mTangent, theta, rotN);
     mNormal = glm::rotate(mNormal, theta, rotN);
 
@@ -1151,11 +1142,6 @@ struct Boid
     glm::vec3 ali = align(boids);
     glm::vec3 coh = cohesion(boids);
     
-    glm::vec3 dist = mLocation - camera->Position;
-    if(glm::length(dist) > boundaryRadius)
-    {
-      applyForce(-2.0f*glm::normalize(dist));
-    }
 
     if(steertype == SteerState::NATURAL)
     {
@@ -1206,7 +1192,7 @@ struct Boid
 
     if(glm::length(mAcceleration) > maxforce)
     {
-      mAcceleration = glm::normalize(mAcceleration);
+      glm::normalize(mAcceleration);
       mAcceleration = mAcceleration*maxforce;
     }
   }
@@ -1216,11 +1202,11 @@ struct Boid
     // glm::mat4 model(1.0);
     glm::vec3 v = glm::normalize(mTangent);
     glm::vec3 a = glm::normalize(mNormal);
-    glm::vec3 cross = glm::normalize(glm::cross(v, a));
+    glm::vec3 cross = glm::cross(v, a);
     glm::mat4 model;
-    model = glm::mat4(glm::vec4(v.x, cross.y, cross.z, 0.0f), glm::vec4(v.x,v.y,v.z, 0.0f), glm::vec4(a.x, a.y, a.z, 0.0f), glm::vec4(0.0f,0.0f,0.0f,1.0f));
-    // model = glm::scale(model, glm::vec3(.75f,.75f,.75f));
+    model = glm::mat4(glm::vec4(cross.x, cross.y, cross.z, 0.0f), glm::vec4(v.x,v.y,v.z, 0.0f), glm::vec4(a.x, a.y, a.z, 0.0f), glm::vec4(0.0f,0.0f,0.0f,1.0f));
     model = glm::translate(model, mLocation);
+    // model = glm::scale(model, glm::vec3(.75f,.75f,.75f));
     return model;
   }
 };
@@ -1426,6 +1412,9 @@ int main()
       flock->addRandBoid();
     }
 
+
+
+
     while(!glfwWindowShouldClose(window))
     {
 
@@ -1433,16 +1422,16 @@ int main()
       {
         if(camera_mode == CENTER)
         {
-          glm::vec3 f = glm::normalize(flock->getFlockCenterOfMass() - camera->Position);
-          camera->Front = f;
+          // glm::vec3 f = glm::normalize(flock->getFlockCenterOfMass() - camera->Position);
+          // camera->Front = f;
         }
         else if(camera_mode == BOID)
         {
           if(boid_select < flock->boids.size())
           {
-            glm::vec3 f = glm::normalize(flock->boids[boid_select]->mVelocity);
-            camera->Front = f;
-            camera->Position = flock->boids[boid_select]->mLocation + camera->Front*(1.0f);
+            // glm::vec3 f = glm::normalize(flock->boids[boid_select]->mVelocity);
+            // camera->Front = f;
+            // camera->Position = flock->boids[boid_select]->mLocation + camera->Front*(1.0f);
           }
         }
       }
@@ -1553,8 +1542,6 @@ int main()
     // glDeleteVertexArrays(1, &VAO);
     // glDeleteBuffers(1, &VBO);
     glfwTerminate();
-
-    delete flock;
     return 0;
 }
 
