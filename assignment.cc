@@ -59,94 +59,6 @@ enum {
 GLuint array_objects[kNumVaos];
 GLuint buffer_objects[kNumVaos][kNumVbos];  // These will store VBO descriptors.
 
-const char* vertex_shader =
-    "#version 330 core\n"
-    "in vec3 vertex_position;" // A vector (x,y,z) representing the vertex's position
-    "uniform vec3 light_position;" // Global variable representing the light's position
-    "out vec3 vs_light_direction;" // Used for shading by the fragment shader
-    "void main() {"
-       "gl_Position = vec4(vertex_position, 1.0);" // Don't transform the vertices at all
-       "vs_light_direction = light_position - vertex_position;" // Calculate vector to the light (used for shading in fragment shader)
-    "}";
-
-const char* geometry_shader =
-    "#version 330 core\n"
-    "layout (triangles) in;" // Reads in triangles
-    "layout (triangle_strip, max_vertices = 3) out;" // And outputs triangles
-    "uniform mat4 view_projection;" // The matrix encoding the camera position and settings. Don't worry about this for now
-    "in vec3 vs_light_direction[];" // The light direction computed in the vertex shader
-    "out vec3 normal;" // The normal of the triangle. Needs to be computed inside this shader
-    "out vec3 light_direction;" // Light direction again (this is just passed straight through to the fragment shader)
-    "void main() {"
-    	//Took the cross product of (p2 - p1) and (p3 - p1) which returns a vector
-       "vec3 norm = cross( gl_in[1].gl_Position.xyz - gl_in[0].gl_Position.xyz, gl_in[2].gl_Position.xyz - gl_in[0].gl_Position.xyz);"
-       // normalized the resulting vector to obtain the unit vector
-       "normal = normalize(norm);"
-       "int n = 0;"
-       "for (n = 0; n < gl_in.length(); n++) {" // Loop over three vertices of the triangle
-          "light_direction = vs_light_direction[n];" // Pass the light direction to the fragment shader
-          "gl_Position = view_projection * gl_in[n].gl_Position;" // Project the vertex into screen coordinates
-          "EmitVertex();"
-       "}"
-       "EndPrimitive();"
-    "}";
-
-const char* fragment_shader =
-    "#version 330 core\n"
-    "in vec3 normal;" // Normal computed in the geometry shader
-    "in vec3 light_direction;" // Light direction computed in the vertex shader
-    "out vec4 fragment_color;" // This shader will compute the pixel color
-    "void main() {"
-       "vec4 color = vec4(1.0, 0.0, 0.0, 1.0);" // Red
-       "float dot_nl = dot(normalize(light_direction), normalize(normal));" // Compute brightness based on angle between normal and light
-       "dot_nl = clamp(dot_nl, 0.0, 1.0);" // Ignore back-facing triangles
-       "fragment_color = clamp(dot_nl * color, 0.0, 1.0);"
-    "}";
-//---------------------------------------------
-
-const char* sprite_vertex_shader =
-  "#version 330 core"
-  "layout (location = 0) in vec4 vertex;" // <vec2 position, vec2 texCoords>
-  "out vec2 TexCoords;"
-  "uniform mat4 model;"
-  "uniform mat4 projection;"
-  "void main()"
-  "{"
-  "    TexCoords = vertex.zw;"
-  "    gl_Position = projection * model * vec4(vertex.xy, 0.0, 1.0);"
-  "}";
-
-const char* sprite_fragment_shader =
-  "#version 330 core"
-  "in vec2 TexCoords;"
-  "out vec4 color;"
-  "uniform sampler2D image;"
-  "uniform vec3 spriteColor;"
-  "void main()"
-  "{"
-  "    color = vec4(spriteColor, 1.0)*texture(image, TexCoords);"
-  "}";
-
-const char* mesh_vertex_shader =
-"#version 330 core"
-"in vec2 TexCoords;"
-"out vec4 color;"
-"uniform vec3 meshColor;"
-"void main()"
-"{   " 
-"    color = vec4(meshColor, 1.0);"
-"} ";
-const char* mesh_frag_shader =
-  "#version 330 core"
-  "layout (location = 0) in vec4 vertex; // <vec2 position, vec2 texCoords>"
-  "uniform mat4 model;"
-  "uniform mat4 view;"
-  "uniform mat4 projection;"
-  ""
-  "void main()"
-  "{"
-  "    gl_Position = projection* view * model * vec4(vertex.xyz, 1.0);"
-  "}";
 
 // // Functions and macros to help debug GL errors
 
@@ -225,155 +137,7 @@ const char* OpenGlErrorToString(GLenum error) {
   }
 
 
-void LoadObj(const std::string& file, std::vector<glm::vec3>& vertices,
-             std::vector<glm::uvec3>& indices) 
-{
- 
-  std::cout << "LOADOBJ INVOKED" << std::endl;
-  std::ifstream myfile (file);
-  std::string line;
-  glm::vec3 minC(0.0f);
-  glm::vec3 maxC(0.0f);
 
-
-  //Open the obj file containing indicies and vertices
-  if(myfile.is_open())
-  {
-    while (getline(myfile, line))
-    {
-      // read the file
-      std::istringstream is (line);
-      char flag;
-      is >> flag;
-      switch(flag)
-      {
-      	//in the case that the line begins with v then add the point to the vertices vector
-        case 'v':
-        {
-          float v1,v2,v3;
-          is >> v1;
-          is >> v2;
-          is >> v3;
-
-          vertices.push_back(glm::vec3(v1,v2,v3));
-        }break;
-        case 'f':
-        {
-          //in the case that the line begins with f then add the 3 points to the indices vector
-          int v1,v2,v3;
-          is >> v1;
-          is >> v2;
-          is >> v3;
-
-          // Zero indexing because obj indices were 1 indexing
-          indices.push_back(glm::uvec3(v1-1,v2-1,v3-1));
-        
-        }break;
-        default:
-        break;
-      }
-    }
-
-
-    
-
-    myfile.close();
-  }
-  else {
-    std::cout << "Unable to open file" << std::endl;
-  } 
-}
-
-void LoadObj(const std::string& file, std::vector<glm::vec4>& vertices,
-             std::vector<glm::uvec3>& indices) 
-{
- 
-  std::cout << "LOADOBJ INVOKED" << std::endl;
-  std::ifstream myfile (file);
-  std::string line;
-  glm::vec3 minC(0.0f);
-  glm::vec3 maxC(0.0f);
-
-
-  //Open the obj file containing indicies and vertices
-  if(myfile.is_open())
-  {
-    while (getline(myfile, line))
-    {
-      // read the file
-      std::istringstream is (line);
-      char flag;
-      is >> flag;
-      switch(flag)
-      {
-        //in the case that the line begins with v then add the point to the vertices vector
-        case 'v':
-        {
-          float v1,v2,v3;
-          is >> v1;
-          is >> v2;
-          is >> v3;
-
-        
-          vertices.push_back(glm::vec4(v1,v2,v3, 1.0f));
-        }break;
-        case 'f':
-        {
-          //in the case that the line begins with f then add the 3 points to the indices vector
-          int v1,v2,v3;
-          is >> v1;
-          is >> v2;
-          is >> v3;
-
-          // Zero indexing because obj indices were 1 indexing
-          indices.push_back(glm::uvec3(v1-1,v2-1,v3-1));
-        
-        }break;
-        default:
-        break;
-      }
-    }
-
-
-    // auto normalizer = [](glm::vec3 p, glm::vec3 min, glm::vec3 max)
-    // {
-    //   glm::vec3 q;
-    //   float x,y,z;
-    //   if(min[0] != max[0])
-    //     x = 2.0f*(p[0]-min[0])/(max[0]-min[0])-1.0f;
-    //   else
-    //     x = min[0];
-
-    //   if(min[1] != max[1])
-    //     y = 2.0f*(p[1]-min[1])/(max[1]-min[1])-1.0f;
-    //   else
-    //     y = min[1];
-
-    //   if(min[2] != max[2])
-    //     z = 2.0f*(p[2]-min[2])/(max[2]-min[2])-1.0f;
-    //   else
-    //     z = min[2];
-
-    //   return glm::vec3(x,y,z);
-    // };
-
-    // bool a = (minC[0] >=-1.0f && minC[1] >=-1.0f && minC[2] >=-1.0f);
-    // bool b = (maxC[0] <=1.0f && maxC[1] <=1.0f && maxC[2] <=1.0f);
-
-    // if(!(a&&b))
-    // {
-    //   for (std::vector<glm::vec3>::iterator i = vertices.begin(); i != vertices.end(); ++i)
-    //   {
-    //     (*i) = normalizer((*i),minC,maxC);
-    //   }
-    // }
-
-    myfile.close();
-  }
-  else {
-    std::cout << "Unable to open file" << std::endl;
-  } 
-}
 
 //----------------------------------------------------------------------------
 class Shader
@@ -608,9 +372,6 @@ class Camera
         {
           this->Position += this->Right * velocity;
         }
-
-        // std::cout << "pos:: ";
-        // std::cout << "x: " << this->Position[0] << "y: " << this->Position[1] << "z: " << this->Position[2] <<std::endl;
     }
 
     // Processes input received from a mouse input system. Expects the offset value in both the x and y direction.
@@ -905,7 +666,6 @@ struct Boid
   Boid(glm::vec3 pos, glm::vec3 direction)
   {
     mVelocity = glm::normalize(direction);
-    // mTangent = mVelocity;
     mAcceleration = glm::vec3(0.0f);
     mLocation = pos;
     r = 2.0;
@@ -1349,16 +1109,6 @@ int main()
         -1.0f, -1.0f,  1.0f
     };
 
-    GLfloat binormal_vert[] = {
-      0.0f, 0.0f, 0.0f,
-      0.0f, 0.0f, 0.1f
-    };
-
-    GLfloat normal_vert[] = {
-      0.0f, 0.0f, 0.0f,
-      0.0f, 0.1f, 0.0f
-    };
-
 
 
     // GLuint VBO, VAO;
@@ -1375,30 +1125,6 @@ int main()
 
     // Position attribute
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, (GLvoid*)0);
-    glEnableVertexAttribArray(0);
-
-
-    glBindVertexArray(array_objects[kNormalFrameVao]);
-    glGenBuffers(kNumVbos, &buffer_objects[kNormalFrameVao][0]);
-    // // Bind our Vertex Array Object first, then bind and set our buffers and pointers.
-
-    glBindBuffer(GL_ARRAY_BUFFER, buffer_objects[kNormalFrameVao][kVertexBuffer]);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(normal_vert), normal_vert, GL_STATIC_DRAW);
-
-    // // Position attribute
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, (GLvoid*)0);
-    glEnableVertexAttribArray(0);
-
-
-    glBindVertexArray(array_objects[kBinormalFrameVao]);
-    glGenBuffers(kNumVbos, &buffer_objects[kBinormalFrameVao][0]);
-    // // Bind our Vertex Array Object first, then bind and set our buffers and pointers.
-
-    glBindBuffer(GL_ARRAY_BUFFER, buffer_objects[kBinormalFrameVao][kVertexBuffer]);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(binormal_vert), binormal_vert, GL_STATIC_DRAW);
-
-    // Position attribute
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), (GLvoid*)0);
     glEnableVertexAttribArray(0);
 
 
@@ -1420,27 +1146,27 @@ int main()
     while(!glfwWindowShouldClose(window))
     {
 
-      if(camera_mode != FREE)
-      {
-        if(camera_mode == CENTER)
-        {
-          // glm::vec3 f = glm::normalize(flock->getFlockCenterOfMass() - camera->Position);
-          // camera->Front = f;
-        }
-        else if(camera_mode == BOID)
-        {
-          if(boid_select < flock->boids.size())
-          {
-            // glm::vec3 f = glm::normalize(flock->boids[boid_select]->mVelocity);
-            // camera->Front = f;
-            // camera->Position = flock->boids[boid_select]->mLocation + camera->Front*(1.0f);
-          }
-        }
-      }
-      else
-      {
-        // camera->Position = flock->getFlockCenterOfMass();
-      }
+      // if(camera_mode != FREE)
+      // {
+      //   if(camera_mode == CENTER)
+      //   {
+      //     // glm::vec3 f = glm::normalize(flock->getFlockCenterOfMass() - camera->Position);
+      //     // camera->Front = f;
+      //   }
+      //   else if(camera_mode == BOID)
+      //   {
+      //     if(boid_select < flock->boids.size())
+      //     {
+      //       // glm::vec3 f = glm::normalize(flock->boids[boid_select]->mVelocity);
+      //       // camera->Front = f;
+      //       // camera->Position = flock->boids[boid_select]->mLocation + camera->Front*(1.0f);
+      //     }
+      //   }
+      // }
+      // else
+      // {
+      //   // camera->Position = flock->getFlockCenterOfMass();
+      // }
 
 
         // Set frame time
@@ -1468,36 +1194,13 @@ int main()
         // projection = glm::ortho(0.0f, (float)screenWidth, (float)screenHeight, 0.0f);
 
 
-        // Get the uniform locations
-        // GLint modelLoc = glGetUniformLocation(ourShader.ID, "model");
-        // GLint viewLoc = glGetUniformLocation(ourShader.ID, "view");
-        // GLint projLoc = glGetUniformLocation(ourShader.ID, "projection");
-        // Pass the matrices to the shader
-        // glUniformMatrix4fv(viewLoc, 1, GL_FALSE, &view[0][0]);
-        // glUniformMatrix4fv(projLoc, 1, GL_FALSE, &projection[0][0]);
         ResourceManager::GetShader("mesh2d").SetMatrix4("projection", projection);
         ResourceManager::GetShader("mesh2d").SetMatrix4("view", view);
 
 
         ResourceManager::GetShader("axis").SetMatrix4("projection", projection);
         ResourceManager::GetShader("axis").SetMatrix4("view", view);
-    // enum { 
-    //   kVertexBuffer, // Buffer of vertex positions
-    //   kIndexBuffer,  // Buffer of triangle indices
-    //   kNumVbos };
 
-    // GLuint vao = 0;                   // This will store the VAO descriptor.
-    // enum {
-    //   kBoid,
-    //   kVelocity,
-    //   kAcceleration,
-    //   kAlign,
-    //   kSeparate,
-    //   kCohesion,
-    //   kNormalFrameVao,
-    //   kBinormalFrameVao,
-    //   kNumVaos
-    // };
         for (std::vector<Boid*>::iterator i = flock->boids.begin(); i != flock->boids.end(); ++i)
         {
           glBindVertexArray(array_objects[kBoid]);
@@ -1509,18 +1212,6 @@ int main()
           glBindVertexArray(0);
 
         }
-
-        // for (std::vector<Boid*>::iterator i = flock->boids.begin(); i != flock->boids.end(); ++i)
-        // {
-        //   glBindVertexArray(array_objects[kNormalFrameVao]);
-        //   CHECK_GL_ERROR(axisShader.Use());
-        //   ResourceManager::GetShader("axis").SetVector3f("meshColor", glm::vec3(1.0f, 0.0f, 0.0f));
-        //   ResourceManager::GetShader("axis").SetMatrix4("model", (*i)->model());
-        //   ResourceManager::GetShader("axis").SetVector4f("light_position", light_position);
-        //   glDrawArrays(GL_LINES, 0, sizeof(normal_vert));
-        //   glBindVertexArray(0);
-
-        // }
 
         int cc = 0;
         for (std::vector<Boid*>::iterator i = flock->boids.begin(); i != flock->boids.end(); ++i)
@@ -1540,9 +1231,7 @@ int main()
         // Swap the buffers
         glfwSwapBuffers(window);
     }
-    // Properly de-allocate all resources once they've outlived their purpose
-    // glDeleteVertexArrays(1, &VAO);
-    // glDeleteBuffers(1, &VBO);
+
     glfwTerminate();
     return 0;
 }
@@ -1650,64 +1339,64 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
         (*i)->setWeights(glm::vec3(1.0f));
       }
     }
-    else if(key == GLFW_KEY_L && action == GLFW_PRESS)
-    {
-      camera_mode = CameraMode::CENTER;
-    }
-    else if(key == GLFW_KEY_F && action == GLFW_PRESS)
-    {
-      camera_mode = CameraMode::FREE;
-    }
-    else if(key == GLFW_KEY_0 && action == GLFW_PRESS)
-    {
-      camera_mode = CameraMode::BOID;
-      boid_select = 9;
-    }
-    else if(key == GLFW_KEY_1 && action == GLFW_PRESS)
-    {
-      camera_mode = CameraMode::BOID;
-      boid_select = 0; 
-    }
-    else if(key == GLFW_KEY_2 && action == GLFW_PRESS)
-    {
-      camera_mode = CameraMode::BOID;
-      boid_select = 1; 
-    }
-    else if(key == GLFW_KEY_3 && action == GLFW_PRESS)
-    {
-      camera_mode = CameraMode::BOID;
-      boid_select = 2; 
-    }
-    else if(key == GLFW_KEY_4 && action == GLFW_PRESS)
-    {
-      camera_mode = CameraMode::BOID;
-      boid_select = 3; 
-    }
-    else if(key == GLFW_KEY_5 && action == GLFW_PRESS)
-    {
-      camera_mode = CameraMode::BOID;
-      boid_select = 4; 
-    }
-    else if(key == GLFW_KEY_6 && action == GLFW_PRESS)
-    {
-      camera_mode = CameraMode::BOID;
-      boid_select = 5; 
-    }
-    else if(key == GLFW_KEY_7 && action == GLFW_PRESS)
-    {
-      camera_mode = CameraMode::BOID;
-      boid_select = 6; 
-    }
-    else if(key == GLFW_KEY_8 && action == GLFW_PRESS)
-    {
-      camera_mode = CameraMode::BOID;
-      boid_select = 7; 
-    }
-    else if(key == GLFW_KEY_9 && action == GLFW_PRESS)
-    {
-      camera_mode = CameraMode::BOID;
-      boid_select = 8; 
-    }
+    // else if(key == GLFW_KEY_L && action == GLFW_PRESS)
+    // {
+    //   camera_mode = CameraMode::CENTER;
+    // }
+    // else if(key == GLFW_KEY_F && action == GLFW_PRESS)
+    // {
+    //   camera_mode = CameraMode::FREE;
+    // }
+    // else if(key == GLFW_KEY_0 && action == GLFW_PRESS)
+    // {
+    //   camera_mode = CameraMode::BOID;
+    //   boid_select = 9;
+    // }
+    // else if(key == GLFW_KEY_1 && action == GLFW_PRESS)
+    // {
+    //   camera_mode = CameraMode::BOID;
+    //   boid_select = 0; 
+    // }
+    // else if(key == GLFW_KEY_2 && action == GLFW_PRESS)
+    // {
+    //   camera_mode = CameraMode::BOID;
+    //   boid_select = 1; 
+    // }
+    // else if(key == GLFW_KEY_3 && action == GLFW_PRESS)
+    // {
+    //   camera_mode = CameraMode::BOID;
+    //   boid_select = 2; 
+    // }
+    // else if(key == GLFW_KEY_4 && action == GLFW_PRESS)
+    // {
+    //   camera_mode = CameraMode::BOID;
+    //   boid_select = 3; 
+    // }
+    // else if(key == GLFW_KEY_5 && action == GLFW_PRESS)
+    // {
+    //   camera_mode = CameraMode::BOID;
+    //   boid_select = 4; 
+    // }
+    // else if(key == GLFW_KEY_6 && action == GLFW_PRESS)
+    // {
+    //   camera_mode = CameraMode::BOID;
+    //   boid_select = 5; 
+    // }
+    // else if(key == GLFW_KEY_7 && action == GLFW_PRESS)
+    // {
+    //   camera_mode = CameraMode::BOID;
+    //   boid_select = 6; 
+    // }
+    // else if(key == GLFW_KEY_8 && action == GLFW_PRESS)
+    // {
+    //   camera_mode = CameraMode::BOID;
+    //   boid_select = 7; 
+    // }
+    // else if(key == GLFW_KEY_9 && action == GLFW_PRESS)
+    // {
+    //   camera_mode = CameraMode::BOID;
+    //   boid_select = 8; 
+    // }
 
     if (key >= 0 && key < 1024)
     {

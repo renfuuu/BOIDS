@@ -4,7 +4,7 @@ Team Member 1: Kaleb Alanis
 
 Team Member 2: Itoro Esiere
 
-Description: Implementation of BOIDS/Flocking in 3 space.
+Description: Implementation of BOIDS: 3D flocking and emergent behavior in 3 space.
 
 How to build:
 buildit.sh
@@ -17,7 +17,7 @@ Press P - to Pause
 Press C - for Chaos State
 Press R - to make the boids return toward camera
 Press N - for Natural State
-Press Left Mouse button - to generate one new boid
+Press Left Mouse button - to generate one new boid in a random position
 Press Up Arrow - to increment cohesion
 Press Down Arrow - to decrement cohesion
 Press Right Arrow - to increment seperation
@@ -27,4 +27,4 @@ Press < or , - to decrement alignment
 Press Spacebar - to reset Cohesion, Alignment, Seperation weights
 
 
-Disclaimer: We both did the course instructor survey.
+Disclaimer: We both did the course instructor survey. Our project is best viewed in full screen.
