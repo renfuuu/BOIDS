@@ -6,6 +6,11 @@ Team Member 2: Itoro Esiere
 
 Description: Implementation of BOIDS: 3D flocking and emergent behavior in 3 space.
 
+
+![Alt text](http://i.imgur.com/ZVsAbNc.png "BOIDS")
+
+Demo: https://www.youtube.com/watch?v=QEnYovbgfmQ
+
 How to build:
 buildit.sh
 
